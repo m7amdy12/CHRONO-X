@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CHRONO-X // Schedule Workspace</title>
+<title>CHRONO</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#050608;--fg:#f3f4f6;--mut:#8b949e;--line:#232a38;--acc:#3b82f6;--onacc:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -455,7 +455,6 @@ dialog h3{margin:0;font-size:24px}
 </style>
 </head>
 <body>
-<h1 style="position:fixed;top:0;left:0;right:0;background:red;color:white;text-align:center;z-index:99999;font-size:20px;padding:10px;margin:0">VERSION 2</h1>
 <!-- STARTUP SEQUENCE (Unchanged) -->
 <section id="auth" class="scr on">
 <div class="orb"><i></i><i></i><i></i></div><div class="beam"></div>
@@ -576,8 +575,6 @@ window.addEventListener('unhandledrejection',e=>{
 </script>
 
 <script>
-document.body.style.background = 'red';
-document.title = 'A';
 const $=i=>document.getElementById(i),L=localStorage;
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 let acct=null,plans=[],view='sch',week,mode='in',ed=null;
@@ -619,7 +616,6 @@ function tab(m){
   $('ae').textContent='';
 }
 
-document.title = 'B';
 $('ti').onclick=()=>tab('in');
 $('tu').onclick=()=>tab('up');
 
@@ -665,7 +661,6 @@ $('nf').onsubmit=e=>{
   intro();
 };
 
-document.title = 'C';
 function intro(){show('game');startGame();}
 
 /* ---- Dino intro game (Unchanged) ---- */
