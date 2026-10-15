@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CHRONO-X</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#050608;--fg:#f3f4f6;--mut:#8b949e;--line:#232a38;--acc:#3b82f6;--onacc:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html[data-theme=paper]{--bg:#f2f2f2;--fg:#0a0a0a;--mut:#555;--line:#c8c8c8;--acc:#0a0a0a;--onacc:#f2f2f2}
@@ -1116,6 +1117,14 @@ dialog h3{margin:0;font-size:24px}
 <div class="tr"><span>Animations and effects</span><button class="tg" id="tfx" type="button" role="switch" aria-label="Animations"></button></div></section>
 <section><h3>ACCOUNT</h3>
 <div class="ar" style="display:flex;gap:12px;flex-wrap:wrap"><button id="rp" type="button">Replay intro</button><button id="out" type="button">Sign out</button></div></section>
+<section><h3>BACKUP</h3>
+<div class="ar" style="display:flex;gap:12px;flex-wrap:wrap">
+<button id="exp" type="button">⬇ Export plans</button>
+<button id="imp" type="button">⬆ Import plans</button>
+</div>
+<div style="font-size:13px;color:var(--mut);line-height:1.5;margin-top:4px">Save your plans as a file. Import to restore them later or move to another device.</div>
+<input type="file" id="impf" accept=".json,application/json" style="display:none">
+</section>
 </div>
 </main>
 </div>
@@ -1151,6 +1160,11 @@ window.addEventListener('unhandledrejection',e=>{
 
 <script>
 const $=i=>document.getElementById(i),L=localStorage;
+/* ---- Supabase client ---- */
+const SB_URL='https://tclhiivhzacayhwqiexz.supabase.co';
+const SB_KEY='sb_publishable_LP3WNnDlBLPGpOjF6M2oSw_eIwelEY-';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let currentUser=null;   // Supabase user object
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 let acct=null,plans=[],view='sch',week,mode='in',ed=null;
 let notifTimer=null;
@@ -1736,6 +1750,67 @@ $('pfm').onsubmit=e=>{
   L.setItem('pw:acct', JSON.stringify(acct));
 };
 
+/* ---- Backup: Export ---- */
+$('exp').onclick=()=>{
+  const data={
+    app:'CHRONO-X',
+    version:1,
+    exported:new Date().toISOString(),
+    user:acct.u,
+    displayName:acct.dn,
+    plans:plans
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download='chrono-x-'+acct.u+'-'+stamp+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  beep(880,.08,'sine',.04);
+  setTimeout(()=>beep(1320,.1,'sine',.04),120);
+};
+
+/* ---- Backup: Import ---- */
+$('imp').onclick=()=>$('impf').click();
+$('impf').onchange=e=>{
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data||!Array.isArray(data.plans))throw new Error('Not a valid CHRONO-X backup file.');
+      const count=data.plans.length;
+      const ok=confirm('Import '+count+' plan'+(count===1?'':'s')+'?\n\nThis will REPLACE your current plans. Are you sure?');
+      if(!ok){e.target.value='';return;}
+      plans=data.plans.map(p=>({
+        id:p.id||(Date.now()+Math.random()),
+        t:p.t||'Untitled',
+        d:p.d||iso(new Date()),
+        s:p.s||'',
+        e:p.e||'',
+        c:p.c||'Plan',
+        n:p.n||'',
+        r:p.r||'',
+        x:!!p.x
+      }));
+      savePlans();
+      selectedDay=null;
+      rSch();
+      beep(880,.08,'sine',.04);
+      setTimeout(()=>beep(1320,.1,'sine',.04),120);
+      alert('✅ Imported '+count+' plan'+(count===1?'':'s')+'.');
+    }catch(err){
+      alert('❌ Import failed:\n'+err.message);
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+};
 $('rp').onclick=()=>intro();
 $('out').onclick=()=>{
   L.removeItem('pw:s');
