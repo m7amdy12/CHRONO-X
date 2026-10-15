@@ -990,17 +990,27 @@ main{
 /* ============ CONFETTI ============ */
 .confetti-piece{
   position:fixed;
-  width:10px;
-  height:10px;
+  width:9px;
+  height:9px;
   z-index:9999;
   pointer-events:none;
   border-radius:2px;
   will-change:transform,opacity;
+  transform:translate(-50%,-50%);
 }
-@keyframes confettiFall{
-  0%{transform:translate(0,0) rotate(0deg);opacity:1}
-  60%{opacity:1}
-  100%{transform:translate(var(--dx,0),calc(var(--dy,0px) + 60vh)) rotate(720deg);opacity:0}
+@keyframes confettiBurst{
+  0%{
+    transform:translate(-50%,-50%) translate(0,0) rotate(0deg) scale(.4);
+    opacity:1;
+  }
+  15%{
+    opacity:1;
+    transform:translate(-50%,-50%) translate(calc(var(--tx)*0.35),calc(var(--ty)*0.35)) rotate(120deg) scale(1.15);
+  }
+  100%{
+    transform:translate(-50%,-50%) translate(var(--tx),calc(var(--ty) + 140px)) rotate(var(--rot,720deg)) scale(.6);
+    opacity:0;
+  }
 }
 /* ============ NOTIFICATION TOASTS ============ */
 #toasts{
@@ -2106,8 +2116,8 @@ function unlockAudio(){
 });
 /* ---- Confetti ---- */
 function boom(x,y){
-  const colors=['#39ff14','#4dd2ff','#ff9f1c','#ff4d6d','#3b82f6','#00e5a8','#ffd60a','#ffffff'];
-  const count=42;
+  const colors=['#39ff14','#4dd2ff','#ff9f1c','#ff4d6d','#3b82f6','#00e5a8','#ffd60a','#ffffff','#ff2d95'];
+  const count=60;
   for(let i=0;i<count;i++){
     const p=document.createElement('div');
     p.className='confetti-piece';
@@ -2115,18 +2125,25 @@ function boom(x,y){
     p.style.background=c;
     p.style.left=x+'px';
     p.style.top=y+'px';
-    p.style.boxShadow='0 0 8px '+c;
+    p.style.boxShadow='0 0 10px '+c+', 0 0 20px '+c;
+    p.style.borderRadius=Math.random()>.5?'50%':'2px';
+
+    // Explosion angle — full 360°
     const angle=Math.random()*Math.PI*2;
-    const speed=2+Math.random()*6;
-    const dx=Math.cos(angle)*speed*22;
-    const dy=Math.sin(angle)*speed*15-80;
-    p.style.setProperty('--dx',dx+'px');
-    p.style.setProperty('--dy',dy+'px');
-    const dur=1.2+Math.random()*1.4;
-    p.style.animation=`confettiFall ${dur}s cubic-bezier(.2,.8,.4,1) forwards`;
-    p.style.transform=`translate(0,0)`;
+    // Random strength per particle → wider or tighter bursts
+    const strength=60+Math.random()*140;
+
+    const tx=Math.cos(angle)*strength;
+    const ty=Math.sin(angle)*strength;
+
+    p.style.setProperty('--tx',tx.toFixed(1)+'px');
+    p.style.setProperty('--ty',ty.toFixed(1)+'px');
+    p.style.setProperty('--rot',(Math.random()>0.5?720:-720)+'deg');
+
+    const dur=(0.9+Math.random()*0.9).toFixed(2);
+    p.style.animation=`confettiBurst ${dur}s cubic-bezier(.15,.7,.35,1) forwards`;
     document.body.appendChild(p);
-    setTimeout(()=>p.remove(),(dur+0.2)*1000);
+    setTimeout(()=>p.remove(),(parseFloat(dur)+0.3)*1000);
   }
 }
 
