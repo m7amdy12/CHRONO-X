@@ -1075,6 +1075,7 @@ let actx=null;
 function beep(freq=880,dur=.06,type='square',vol=.04){
   try{
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')actx.resume();
     const o=actx.createOscillator(),gn=actx.createGain();
     o.type=type;o.frequency.value=freq;
     gn.gain.setValueAtTime(vol,actx.currentTime);
@@ -1086,6 +1087,7 @@ function beep(freq=880,dur=.06,type='square',vol=.04){
 function glitchNoise(dur=.5){
   try{
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')actx.resume();
     const buf=actx.createBuffer(1,actx.sampleRate*dur,actx.sampleRate);
     const d=buf.getChannelData(0);
     for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
@@ -1330,6 +1332,16 @@ $('pf').onsubmit=e=>{
   rSch();
 };
 
+/* ---- Unlock audio on first user interaction (iOS requirement) ---- */
+function unlockAudio(){
+  try{
+    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')actx.resume();
+  }catch(e){}
+}
+['pointerdown','touchstart','keydown','click'].forEach(ev=>{
+  window.addEventListener(ev,unlockAudio,{once:false,passive:true});
+});
 /* ---- Notifications ---- */
 
 function parsePlanDate(p){
@@ -1375,10 +1387,16 @@ function checkReminders(){
     if(!dt)return;
     const remindAt=dt.getTime()-parseInt(p.r,10)*60000;
     const key=p.id;
-    if(notified[key])return;
-    if(now>=remindAt && now<remindAt+120000 && now<dt.getTime()){
-      notified[key]=true;
+    // If we already fired for this plan with the same time, skip.
+    // If the plan's time changed (remindAt different), reset and allow re-fire.
+    if(notified[key]===remindAt)return;
+    if(now>=remindAt && now<remindAt+300000 && now<dt.getTime()){
+      notified[key]=remindAt;
       showToast(p);
+    }
+    // Clear the mark once the plan's start time has long passed
+    if(now>dt.getTime()+300000 && notified[key]){
+      delete notified[key];
     }
   });
 }
