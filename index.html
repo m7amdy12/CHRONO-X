@@ -892,13 +892,78 @@ main{
   gap:10px;
   min-width:0;
 }
-.day .row input[type=checkbox]{
-  width:20px;
-  height:20px;
-  min-height:0;
-  accent-color:var(--acc);
+/* ============ CUSTOM CHECK CIRCLE ============ */
+.chk{
+  position:relative;
+  width:26px;
+  height:26px;
+  min-height:26px;
+  min-width:26px;
+  padding:0;
+  border-radius:50%;
+  border:2px solid color-mix(in srgb,var(--acc) 55%,var(--line));
+  background:transparent;
   cursor:pointer;
   flex-shrink:0;
+  transition:all .25s cubic-bezier(.4,1.4,.5,1);
+  display:grid;
+  place-items:center;
+}
+.chk::before{
+  content:"";
+  position:absolute;
+  inset:-4px;
+  border-radius:50%;
+  border:1px solid transparent;
+  transition:all .25s;
+  pointer-events:none;
+}
+.chk:hover{
+  border-color:var(--acc);
+  transform:scale(1.12);
+  box-shadow:0 0 12px color-mix(in srgb,var(--acc) 45%,transparent);
+}
+.chk:active{transform:scale(.92)}
+.chk::after{
+  content:"";
+  position:absolute;
+  width:12px;
+  height:6px;
+  border-left:2.5px solid var(--onacc);
+  border-bottom:2.5px solid var(--onacc);
+  transform:rotate(-45deg) translate(-1px,-2px) scale(0);
+  transform-origin:center;
+  opacity:0;
+  transition:all .3s cubic-bezier(.4,1.6,.5,1);
+}
+.chk.on{
+  background:var(--acc);
+  border-color:var(--acc);
+  box-shadow:
+    0 0 14px color-mix(in srgb,var(--acc) 60%,transparent),
+    inset 0 0 8px color-mix(in srgb,var(--onacc) 20%,transparent);
+  animation:chkPop .35s cubic-bezier(.4,1.6,.5,1);
+}
+.chk.on::after{
+  opacity:1;
+  transform:rotate(-45deg) translate(-1px,-2px) scale(1);
+}
+.chk.on::before{
+  border-color:color-mix(in srgb,var(--acc) 30%,transparent);
+  animation:chkRing .5s cubic-bezier(.2,1.4,.4,1);
+}
+.chk.on:hover{
+  transform:scale(1.12);
+  box-shadow:0 0 20px color-mix(in srgb,var(--acc) 80%,transparent);
+}
+@keyframes chkPop{
+  0%{transform:scale(.6)}
+  50%{transform:scale(1.25)}
+  100%{transform:scale(1)}
+}
+@keyframes chkRing{
+  0%{inset:-4px;opacity:1}
+  100%{inset:-14px;opacity:0}
 }
 .day .row .x{
   font-size:16px;
@@ -1994,6 +2059,27 @@ function rSch(){
   next.onclick=()=>{week.setDate(week.getDate()+7);rSch();};
   strip.append(next);
 
+  // --- Build selected day's plans ---
+  const sel=new Date(selectedDay+'T00:00:00');
+  const selPlans=plans.filter(p=>p.d===selectedDay).sort((a,b)=>(a.s||'99').localeCompare(b.s||'99'));
+
+  const s=el('section','day'+(selectedDay===td?' today':''));
+  const h=el('header');
+  const ad=el('button','add','+');
+  ad.type='button';
+  ad.setAttribute('aria-label','Add plan on '+selectedDay);
+  ad.onclick=()=>openPlan(null,selectedDay);
+  const dow=el('div','dow');
+  dow.append(
+    el('span','',sel.toLocaleDateString(undefined,{weekday:'long'})),
+    el('small','',sel.toLocaleDateString(undefined,{month:'long',day:'numeric'}))
+  );
+  h.append(el('b','o',sel.getDate()),dow,el('em','',selectedDay===td?'Today':selPlans.length?selPlans.length+(selPlans.length>1?' plans':' plan'):'Free'),ad);
+  s.append(h);
+
+  if(!selPlans.length){
+    s.append(el('div','empty','Nothing planned — free day.'));
+  }
   selPlans.forEach(p=>{
     const r=el('div','row'+(p.x?' d':''));
 
