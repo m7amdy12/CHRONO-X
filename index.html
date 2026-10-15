@@ -1610,11 +1610,38 @@ document.addEventListener('keydown',e=>{
   if(wl.classList.contains('on')&&(e.key==='ArrowUp'||e.key==='Enter'))enter();
 });
 
+async function loadPlans(){
+  if(!currentUser){plans=[];return;}
+  try{
+    const {data,error}=await sb
+      .from('plans')
+      .select('*')
+      .eq('user_id',currentUser.id)
+      .order('date',{ascending:true});
+    if(error)throw error;
+    plans=(data||[]).map(r=>({
+      id:r.id,
+      t:r.title,
+      d:r.date,
+      s:r.start_time||'',
+      e:r.end_time||'',
+      c:r.category||'Plan',
+      n:r.note||'',
+      r:r.reminder||'',
+      x:!!r.done
+    }));
+  }catch(err){
+    console.error('Load failed:',err);
+    plans=[];
+  }
+}
 /* ---- Redesigned Main App Logic ---- */
-function startApp(){
+async function startApp(){
   look();
   week=mon(new Date());
-    startReminderWatch();
+  selectedDay=null;
+  await loadPlans();
+  startReminderWatch();
   $('mn').textContent=acct.dn||acct.u;
   $('mu').textContent='@'+acct.u;
   $('dn').value=acct.dn;
@@ -1630,8 +1657,46 @@ function go(v){
 }
 document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>go(b.dataset.v));
 
-function savePlans(){
-  L.setItem('pw:plans_'+acct.u, JSON.stringify(plans));
+async function savePlans(){
+  if(!currentUser)return;
+  try{
+    // Fetch existing plan IDs for this user
+    const {data:existing,error:fetchErr}=await sb
+      .from('plans')
+      .select('id')
+      .eq('user_id',currentUser.id);
+    if(fetchErr)throw fetchErr;
+
+    const existingIds=new Set((existing||[]).map(r=>r.id));
+    const currentIds=new Set(plans.map(p=>String(p.id)));
+
+    // Delete plans that no longer exist locally
+    const toDelete=[...existingIds].filter(id=>!currentIds.has(String(id)));
+    if(toDelete.length){
+      const {error}=await sb.from('plans').delete().in('id',toDelete);
+      if(error)throw error;
+    }
+
+    // Upsert current plans (insert or update)
+    if(plans.length){
+      const rows=plans.map(p=>({
+        id:p.id,
+        user_id:currentUser.id,
+        title:p.t,
+        date:p.d,
+        start_time:p.s||'',
+        end_time:p.e||'',
+        category:p.c||'Plan',
+        note:p.n||'',
+        reminder:p.r||'',
+        done:!!p.x
+      }));
+      const {error}=await sb.from('plans').upsert(rows,{onConflict:'id'});
+      if(error)throw error;
+    }
+  }catch(err){
+    console.error('Save failed:',err);
+  }
 }
 
 
@@ -1711,7 +1776,7 @@ function rSch(){
     const cb=el('input');
     cb.type='checkbox';cb.checked=!!p.x;
     cb.setAttribute('aria-label','Mark done: '+p.t);
-    cb.onchange=()=>{p.x=cb.checked;savePlans();rSch();};
+   cb.onchange=async()=>{p.x=cb.checked;await savePlans();rSch();};
     body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
     if(p.r){
       const rm=el('span','rem', '⏰ '+p.r+'m');
@@ -1724,7 +1789,7 @@ function rSch(){
     const a=el('div','act'),eb=el('button','','Edit'),db2=el('button','','Del');
     eb.type=db2.type='button';
     eb.onclick=()=>openPlan(p);
-    db2.onclick=()=>{plans=plans.filter(y=>y.id!==p.id);savePlans();rSch();};
+    db2.onclick=async()=>{plans=plans.filter(y=>y.id!==p.id);await savePlans();rSch();};
     a.append(eb,db2);
     r.append(t,body,a);
     s.append(r);
@@ -1755,9 +1820,9 @@ function openPlan(p,k){
 }
 
 $('pcn').onclick=()=>$('dlg').close();
-$('pdel').onclick=()=>{plans=plans.filter(y=>y.id!==ed.id);savePlans();$('dlg').close();rSch();};
+$('pdel').onclick=async()=>{plans=plans.filter(y=>y.id!==ed.id);await savePlans();$('dlg').close();rSch();};
 
-$('pf').onsubmit=e=>{
+$('pf').onsubmit=async e=>{
   e.preventDefault();
   const t=$('pt').value.trim(),
         d=$('pd').value,
@@ -1771,7 +1836,7 @@ $('pf').onsubmit=e=>{
   const o={t,d,s,e:en,c:ty,n,r};
   if(ed)Object.assign(ed,o);
   else plans.push({id:Date.now()+Math.random(),x:false,...o});
-  savePlans();
+  await savePlans();
   $('dlg').close();
   week=mon(new Date(d+'T00:00'));
   rSch();
