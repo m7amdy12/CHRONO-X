@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CHRONO</title>
+<title>CHRONO-X</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#050608;--fg:#f3f4f6;--mut:#8b949e;--line:#232a38;--acc:#3b82f6;--onacc:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -17,7 +17,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:500 16px/1.5 Rajdhani,sy
 body::before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/48px 48px;opacity:.2;animation:drift 8s linear infinite}
 h1,h2,h3,.o{font-family:Orbitron,Rajdhani,sans-serif}
 button,input,select{font:inherit;color:var(--fg)}
-button{cursor:pointer;min-height:44px;padding:0 20px;background:transparent;border:1px solid var(--line);font-weight:700;letter-spacing:.08em;transition:all .25s}
+button{cursor:pointer;min-height:44px;padding:0 20px;background:transparent;border:1px solid var(--line);font-weight:700;letter-spacing:.08em;transition:all .25s;border-radius:14px}
 button:hover{border-color:var(--acc);color:var(--acc);transform:translateY(-1px)}
 button:active{transform:scale(.97)}
 button.p{background:var(--acc);color:var(--onacc);border-color:var(--acc);position:relative;overflow:hidden;box-shadow:0 4px 20px color-mix(in srgb,var(--acc) 30%,transparent)}
@@ -73,7 +73,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 .card.bad{animation:sh .3s}
 .card h1{margin:0 0 4px;font-size:28px;letter-spacing:.12em;animation:flk 4s infinite}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--line);padding:4px;border-radius:12px}
-.tabs button{border:0;border-radius:8px;min-height:38px}
+.tabs button{border:0;border-radius:10px;min-height:38px}
 .tabs button[aria-pressed=true]{background:var(--acc);color:var(--onacc)}
 .err{min-height:22px;font-weight:700;color:#ef4444;font-size:14px}
 
@@ -416,8 +416,8 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
 .sw:hover{transform:scale(1.15)}
 .sw[aria-pressed=true]{border-color:var(--fg);box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--fg)}
 .tr{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:17px;font-weight:600}
-.tg{width:60px;min-width:60px;height:34px;padding:0;border-radius:99px;position:relative;border:1px solid var(--line);background:var(--bg)}
-.tg::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--fg);transition:transform .25s}
+.tg{width:60px;min-width:60px;height:34px;padding:0;border-radius:99px;position:relative;border:1px solid var(--line);background:var(--bg);overflow:hidden;transition:background .25s,border-color .25s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--fg);transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .25s;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .tg[aria-pressed=true]{background:var(--acc);border-color:var(--acc)}
 .tg[aria-pressed=true]::after{transform:translateX(26px);background:var(--onacc)}
 
@@ -497,7 +497,7 @@ dialog h3{margin:0;font-size:24px}
 <!-- REDESIGNED MAIN APP HOMEPAGE -->
 <div id="app">
 <aside id="side">
-<div class="logo o">CHRONO</div>
+<div class="logo o">CHRONO-X</div>
 <button class="nv" data-v="sch" type="button"><i class="fa-solid fa-calendar-days"></i> Schedule</button>
 <button class="nv" data-v="set" type="button"><i class="fa-solid fa-gear"></i> Settings</button>
 <div class="me"><b id="mn"></b><small id="mu"></small></div>
