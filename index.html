@@ -519,17 +519,18 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.day .row .g{
-  padding:2px 10px;
-  border:1px solid var(--acc);
+.day .row .rem{
+  padding:2px 9px;
+  border:1px dashed color-mix(in srgb,var(--acc) 60%,transparent);
   color:var(--acc);
   font-size:11px;
-  border-radius:99px;
+  border-radius:8px;
   font-weight:700;
-  letter-spacing:.06em;
+  letter-spacing:.04em;
   white-space:nowrap;
-  background:color-mix(in srgb,var(--acc) 8%,transparent);
+  background:transparent;
   flex-shrink:0;
+  opacity:.85;
 }
 .day .row .note{
   grid-column:2 / -1;
@@ -782,6 +783,7 @@ dialog h3{margin:0;font-size:24px}
 <div class="two"><label>Start<input id="ps" type="time" required></label><label>End<input id="pe" type="time"></label></div>
 <label>Type<input id="pc" type="text" maxlength="24" placeholder="e.g. Work, Gym, Study…" list="pcList"><datalist id="pcList"><option>Work</option><option>Study</option><option>Life</option><option>Health</option><option>Gym</option><option>Personal</option></datalist></label>
 <label>Note (optional)<textarea id="pn" rows="3" maxlength="300" placeholder="Add details, location, links…"></textarea></label>
+<label>Remind me<select id="pr"><option value="">No reminder</option><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="120">2 hours before</option><option value="1440">1 day before</option></select></label>
 <div class="err" id="pm" role="alert"></div>
 <div class="ar" style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button class="p">Save Plan</button><button type="button" id="pcn">Cancel</button><button type="button" id="pdel" hidden style="color:#ef4444;border-color:#ef4444">Delete</button></div>
 </form></dialog>
@@ -1117,6 +1119,10 @@ function rSch(){
       cb.setAttribute('aria-label','Mark done: '+p.t);
       cb.onchange=()=>{p.x=cb.checked;savePlans();rSch();};
       body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
+      if(p.r){
+        const rm=el('span','rem', '⏰ '+p.r+'m');
+        body.append(rm);
+      }
       if(p.n){
         const note=el('div','note',p.n);
         body.append(note);
@@ -1150,6 +1156,7 @@ function openPlan(p,k){
   $('pe').value=p?p.e:'';
   $('pc').value=p?(p.c||''):'';
   $('pn').value=p?(p.n||''):'';
+  $('pr').value=p?(p.r||''):'';
   $('dh').textContent=p?'Edit plan':'New plan';
   $('pdel').hidden=!p;
   $('pm').textContent='';
@@ -1166,10 +1173,11 @@ $('pf').onsubmit=e=>{
         s=$('ps').value,
         en=$('pe').value,
         n=$('pn').value.trim(),
-        ty=$('pc').value.trim()||'Plan';
+        ty=$('pc').value.trim()||'Plan',
+        r=$('pr').value;
   if(!t||!d)return;
   if(en&&en<=s){$('pm').textContent='End time must be after the start time.';return;}
-  const o={t,d,s,e:en,c:ty,n};
+  const o={t,d,s,e:en,c:ty,n,r};
   if(ed)Object.assign(ed,o);
   else plans.push({id:Date.now()+Math.random(),x:false,...o});
   savePlans();
