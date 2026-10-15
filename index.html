@@ -999,7 +999,8 @@ main{
 }
 @keyframes confettiFall{
   0%{transform:translate(0,0) rotate(0deg);opacity:1}
-  100%{transform:translate(var(--dx,0),110vh) rotate(720deg);opacity:0}
+  60%{opacity:1}
+  100%{transform:translate(var(--dx,0),calc(var(--dy,0px) + 60vh)) rotate(720deg);opacity:0}
 }
 /* ============ NOTIFICATION TOASTS ============ */
 #toasts{
@@ -2013,11 +2014,18 @@ function rSch(){
     cb.setAttribute('aria-label','Mark done: '+p.t);
   cb.onchange=async(e)=>{
   p.x=cb.checked;
+  // Grab the row BEFORE re-render
+  const rowEl=cb.closest('.row');
+  let burstX=0,burstY=0;
+  if(rowEl){
+    const r=rowEl.getBoundingClientRect();
+    burstX=r.left+r.width/2;
+    burstY=r.top+r.height/2;
+  }
   await savePlans();
   rSch();
   if(cb.checked){
-    const r=cb.getBoundingClientRect();
-    boom(r.left+r.width/2,r.top+r.height/2);
+    boom(burstX,burstY);
     completeFanfare();
   }
 };
@@ -2110,8 +2118,8 @@ function boom(x,y){
     p.style.boxShadow='0 0 8px '+c;
     const angle=Math.random()*Math.PI*2;
     const speed=2+Math.random()*6;
-    const dx=Math.cos(angle)*speed*20;
-    const dy=Math.sin(angle)*speed*15-150;
+    const dx=Math.cos(angle)*speed*22;
+    const dy=Math.sin(angle)*speed*15-80;
     p.style.setProperty('--dx',dx+'px');
     p.style.setProperty('--dy',dy+'px');
     const dur=1.2+Math.random()*1.4;
