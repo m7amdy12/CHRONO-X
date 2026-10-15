@@ -1222,8 +1222,50 @@ $('tu').onclick=()=>tab('up');
 // Session is handled by Supabase now — nothing to load from localStorage.
 
 /* ---- Supabase auth: sign in / sign up ---- */
+/* ---- Google sign-in ---- */
+$('gbtn').onclick=async()=>{
+  try{
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo:'https://m7amdy12.github.io/CHRONO-X/'}
+    });
+    if(error)bad(error.message);
+  }catch(err){
+    bad('Connection error. Try again.');
+    console.error(err);
+  }
+};
+/* ---- Forgot password ---- */
+$('fpw').onclick=async()=>{
+  const em=prompt('Enter your email address to reset your password:');
+  if(!em)return;
+  const clean=em.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)){bad('Please enter a valid email.');return;}
+  try{
+    const {error}=await sb.auth.resetPasswordForEmail(clean,{
+      redirectTo:'https://m7amdy12.github.io/CHRONO-X/'
+    });
+    if(error){bad(error.message);return;}
+    bad('Reset link sent! Check your email.');
+    $('ae').style.color='var(--acc)';
+    setTimeout(()=>{$('ae').style.color='';},5000);
+  }catch(err){
+    bad('Connection error. Try again.');
+    console.error(err);
+  }
+};
 /* ---- Supabase session listener ---- */
 sb.auth.onAuthStateChange(async (event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    const newPw=prompt('Enter your NEW password (min 6 characters):');
+    if(!newPw || newPw.length<6){alert('Password too short. Try again.');return;}
+    const {error}=await sb.auth.updateUser({password:newPw});
+    if(error){alert('Failed: '+error.message);return;}
+    alert('✅ Password updated. You can now sign in.');
+    await sb.auth.signOut();
+    show('auth');
+    return;
+  }
   if(session && session.user){
     currentUser=session.user;
     acct={
