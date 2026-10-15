@@ -950,6 +950,8 @@ window.addEventListener('unhandledrejection',e=>{
 const $=i=>document.getElementById(i),L=localStorage;
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 let acct=null,plans=[],view='sch',week,mode='in',ed=null;
+let notifTimer=null;
+const notified={};
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const mon=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
 const tf=s=>{if(!s)return'';if(acct&&acct.h24===false){const[h,m]=s.split(':'),n=+h;return(n%12||12)+':'+m+(n<12?' AM':' PM')}return s};
@@ -1329,8 +1331,6 @@ $('pf').onsubmit=e=>{
 };
 
 /* ---- Notifications ---- */
-const notified={};   // tracks fired plans so we don't spam
-let notifTimer=null;
 
 function parsePlanDate(p){
   if(!p.d||!p.s)return null;
