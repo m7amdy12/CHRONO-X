@@ -1177,13 +1177,6 @@ $('pf').onsubmit=e=>{
   week=mon(new Date(d+'T00:00'));
   rSch();
 };
-  if(ed)Object.assign(ed,o);
-  else plans.push({id:Date.now()+Math.random(),x:false,...o});
-  savePlans();
-  $('dlg').close();
-  week=mon(new Date(d+'T00:00'));
-  rSch();
-};
 
 /* ---- Settings ---- */
 function sset(p){
