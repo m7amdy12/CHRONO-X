@@ -379,6 +379,125 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
 .bar{height:8px;background:var(--line);margin-top:10px;border-radius:8px;overflow:hidden;width:240px}
 .bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .6s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 0 12px var(--acc)}
 
+/* ============ WEEK STRIP ============ */
+.week-strip{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+  margin-bottom:22px;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:color-mix(in srgb,var(--bg) 90%,var(--line));
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.week-strip::-webkit-scrollbar{display:none}
+
+.wk-arrow{
+  flex:0 0 40px;
+  min-width:40px;
+  height:auto;
+  padding:0;
+  border:1px solid var(--line);
+  background:transparent;
+  border-radius:14px;
+  font-size:18px;
+  color:var(--fg);
+  display:grid;
+  place-items:center;
+  transition:all .2s;
+  cursor:pointer;
+}
+.wk-arrow:hover{
+  border-color:var(--acc);
+  color:var(--acc);
+  transform:scale(1.05);
+}
+.wk-arrow:active{transform:scale(.95)}
+
+.wk-day{
+  flex:1 1 0;
+  min-width:70px;
+  padding:10px 6px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:transparent;
+  color:var(--fg);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  cursor:pointer;
+  transition:all .25s cubic-bezier(.4,1.4,.5,1);
+  position:relative;
+  overflow:hidden;
+}
+.wk-day:hover{
+  border-color:color-mix(in srgb,var(--acc) 50%,var(--line));
+  transform:translateY(-2px);
+}
+.wk-day .dow{
+  font-size:10px;
+  letter-spacing:.15em;
+  color:var(--mut);
+  font-weight:700;
+  text-transform:uppercase;
+}
+.wk-day .num{
+  font-family:Orbitron,sans-serif;
+  font-size:20px;
+  font-weight:700;
+  line-height:1;
+  color:var(--fg);
+}
+.wk-day .cnt{
+  font-size:10px;
+  letter-spacing:.05em;
+  color:var(--mut);
+  font-weight:600;
+  padding:2px 8px;
+  border-radius:99px;
+  background:color-mix(in srgb,var(--line) 50%,transparent);
+  margin-top:2px;
+  min-width:22px;
+  text-align:center;
+}
+.wk-day.today .dow{color:var(--acc)}
+.wk-day.today .num{color:var(--acc)}
+.wk-day.today{
+  border-color:color-mix(in srgb,var(--acc) 60%,var(--line));
+}
+
+.wk-day[aria-current=true]{
+  background:var(--acc);
+  border-color:var(--acc);
+  box-shadow:0 0 20px color-mix(in srgb,var(--acc) 45%,transparent);
+}
+.wk-day[aria-current=true] .dow,
+.wk-day[aria-current=true] .num{
+  color:var(--onacc);
+}
+.wk-day[aria-current=true] .cnt{
+  background:color-mix(in srgb,var(--onacc) 25%,transparent);
+  color:var(--onacc);
+}
+
+/* Mobile: compact strip */
+@media(max-width:700px){
+  .week-strip{
+    gap:6px;
+    padding:6px;
+    border-radius:16px;
+    margin-bottom:16px;
+  }
+  .wk-arrow{flex:0 0 34px;min-width:34px;font-size:16px;border-radius:12px}
+  .wk-day{min-width:58px;padding:8px 4px;border-radius:12px;gap:1px}
+  .wk-day .dow{font-size:9px;letter-spacing:.1em}
+  .wk-day .num{font-size:17px}
+  .wk-day .cnt{font-size:9px;padding:1px 6px;min-width:18px}
+}
 /* ============ SCHEDULE — REDESIGNED ============ */
 .day{
   position:relative;
@@ -880,10 +999,7 @@ dialog h3{margin:0;font-size:24px}
     <h2 class="o">TIMELINE</h2>
     <p id="rng"></p>
   </div>
-  <div class="ar" style="display:flex;gap:8px;flex-wrap:wrap">
-    <button id="pw" type="button">&lt;</button>
-    <button id="tw" type="button">Today</button>
-    <button id="nw" type="button">&gt;</button>
+<div class="ar" style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="p" id="np" type="button">+ New Plan</button>
   </div>
 </div>
@@ -899,6 +1015,7 @@ dialog h3{margin:0;font-size:24px}
   </div>
 </div>
 
+<div class="week-strip" id="wstrip"></div>
 <div id="week"></div>
 </div>
 
@@ -1229,70 +1346,110 @@ function savePlans(){
   L.setItem('pw:plans_'+acct.u, JSON.stringify(plans));
 }
 
+let selectedDay=null;   // iso string of the currently shown day
+
 function rSch(){
   const box=$('week');
   box.textContent='';
-  const td=iso(new Date()),days=[...Array(7)].map((_,i)=>{const d=new Date(week);d.setDate(week.getDate()+i);return d});
+  const td=iso(new Date());
+  const days=[...Array(7)].map((_,i)=>{const d=new Date(week);d.setDate(week.getDate()+i);return d});
   const f=d=>d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
   $('rng').textContent=f(days[0])+' - '+f(days[6])+', '+days[6].getFullYear();
+
+  // Default selection = today (if visible this week), else first day of the week
+  if(!selectedDay || !days.some(d=>iso(d)===selectedDay)){
+    selectedDay = days.some(d=>iso(d)===td) ? td : iso(days[0]);
+  }
+
+  // --- Build week strip ---
+  const strip=$('wstrip');
+  strip.textContent='';
+
+  const prev=el('button','wk-arrow','‹');
+  prev.type='button';
+  prev.setAttribute('aria-label','Previous week');
+  prev.onclick=()=>{week.setDate(week.getDate()-7);rSch();};
+  strip.append(prev);
+
   let tot=0,dn=0;
-  days.forEach((d,i)=>{
-    const k=iso(d),l=plans.filter(p=>p.d===k).sort((a,b)=>(a.s||'99').localeCompare(b.s||'99'));
+  days.forEach(d=>{
+    const k=iso(d);
+    const l=plans.filter(p=>p.d===k);
     tot+=l.length;dn+=l.filter(p=>p.x).length;
-    const s=el('section','day'+(k===td?' today':''));
-    s.style.animationDelay=i*60+'ms';
-    const h=el('header');
-    const ad=el('button','add','+');
-    ad.type='button';
-    ad.setAttribute('aria-label','Add plan on '+k);
-    ad.onclick=()=>openPlan(null,k);
-        const dow=el('div','dow');
-    dow.append(
-      el('span','',d.toLocaleDateString(undefined,{weekday:'long'})),
-      el('small','',d.toLocaleDateString(undefined,{month:'short'}))
+    const btn=el('button','wk-day'+(k===td?' today':''));
+    btn.type='button';
+    btn.setAttribute('aria-current',k===selectedDay);
+    btn.setAttribute('aria-label',d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})+', '+l.length+' plans');
+    btn.append(
+      el('span','dow',d.toLocaleDateString(undefined,{weekday:'short'})),
+      el('span','num',d.getDate()),
+      el('span','cnt',l.length)
     );
-    h.append(el('b','o',d.getDate()),dow,el('em','',k===td?'Today':l.length?l.length+(l.length>1?' plans':' plan'):'Free'),ad);
-    s.append(h);
-    if(!l.length){
-      s.append(el('div','empty','Nothing planned — free day.'));
-    }
-    l.forEach(p=>{
-      const r=el('div','row'+(p.x?' d':''));
-      const t=el('div','t',(tf(p.s)+(p.e?' – '+tf(p.e):''))||'All day');
-      const body=el('div','body');
-      const cb=el('input');
-      cb.type='checkbox';cb.checked=!!p.x;
-      cb.setAttribute('aria-label','Mark done: '+p.t);
-      cb.onchange=()=>{p.x=cb.checked;savePlans();rSch();};
-      body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
-      if(p.r){
-        const rm=el('span','rem', '⏰ '+p.r+'m');
-        body.append(rm);
-      }
-      if(p.n){
-        const note=el('div','note',p.n);
-        body.append(note);
-      }
-      const a=el('div','act'),eb=el('button','','Edit'),db2=el('button','','Del');
-      eb.type=db2.type='button';
-      eb.onclick=()=>openPlan(p);
-      db2.onclick=()=>{plans=plans.filter(y=>y.id!==p.id);savePlans();rSch();};
-      a.append(eb,db2);
-      r.append(t,body,a);
-      s.append(r);
-    });
-    box.append(s);
+    btn.onclick=()=>{selectedDay=k;rSch();};
+    strip.append(btn);
   });
+
+  const next=el('button','wk-arrow','›');
+  next.type='button';
+  next.setAttribute('aria-label','Next week');
+  next.onclick=()=>{week.setDate(week.getDate()+7);rSch();};
+  strip.append(next);
+
+  // --- Build selected day's plans ---
+  const sel=new Date(selectedDay+'T00:00:00');
+  const selPlans=plans.filter(p=>p.d===selectedDay).sort((a,b)=>(a.s||'99').localeCompare(b.s||'99'));
+
+  const s=el('section','day'+(selectedDay===td?' today':''));
+  const h=el('header');
+  const ad=el('button','add','+');
+  ad.type='button';
+  ad.setAttribute('aria-label','Add plan on '+selectedDay);
+  ad.onclick=()=>openPlan(null,selectedDay);
+  const dow=el('div','dow');
+  dow.append(
+    el('span','',sel.toLocaleDateString(undefined,{weekday:'long'})),
+    el('small','',sel.toLocaleDateString(undefined,{month:'long',day:'numeric'}))
+  );
+  h.append(el('b','o',sel.getDate()),dow,el('em','',selectedDay===td?'Today':selPlans.length?selPlans.length+(selPlans.length>1?' plans':' plan'):'Free'),ad);
+  s.append(h);
+
+  if(!selPlans.length){
+    s.append(el('div','empty','Nothing planned — free day.'));
+  }
+  selPlans.forEach(p=>{
+    const r=el('div','row'+(p.x?' d':''));
+    const t=el('div','t',(tf(p.s)+(p.e?' – '+tf(p.e):''))||'All day');
+    const body=el('div','body');
+    const cb=el('input');
+    cb.type='checkbox';cb.checked=!!p.x;
+    cb.setAttribute('aria-label','Mark done: '+p.t);
+    cb.onchange=()=>{p.x=cb.checked;savePlans();rSch();};
+    body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
+    if(p.r){
+      const rm=el('span','rem', '⏰ '+p.r+'m');
+      body.append(rm);
+    }
+    if(p.n){
+      const note=el('div','note',p.n);
+      body.append(note);
+    }
+    const a=el('div','act'),eb=el('button','','Edit'),db2=el('button','','Del');
+    eb.type=db2.type='button';
+    eb.onclick=()=>openPlan(p);
+    db2.onclick=()=>{plans=plans.filter(y=>y.id!==p.id);savePlans();rSch();};
+    a.append(eb,db2);
+    r.append(t,body,a);
+    s.append(r);
+  });
+  box.append(s);
+
   const pct=tot?Math.round(dn/tot*100):0;
   $('wp').textContent=tot?dn+' of '+tot+' plans completed this week':'Nothing planned this week yet.';
   $('pctLabel').textContent=pct+'% Completed';
   $('pb').style.width=pct+'%';
 }
 
-$('pw').onclick=()=>{week.setDate(week.getDate()-7);rSch();};
-$('nw').onclick=()=>{week.setDate(week.getDate()+7);rSch();};
-$('tw').onclick=()=>{week=mon(new Date());rSch();};
-$('np').onclick=()=>openPlan(null,iso(new Date()));
+$('np').onclick=()=>openPlan(null,selectedDay||iso(new Date()));
 
 function openPlan(p,k){
   ed=p;
