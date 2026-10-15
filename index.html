@@ -1038,6 +1038,9 @@ dialog h3{margin:0;font-size:24px}
 <form class="ar" id="pfm" style="display:flex;gap:12px"><input id="dn" maxlength="24" aria-label="Display name" required><button class="p">Save name</button></form></section>
 <section><h3>THEME</h3><div class="ths" id="ths"></div></section>
 <section><h3>ACCENT COLOR</h3><div class="sws" id="sws"></div></section>
+<section><h3>NOTIFICATIONS</h3>
+<div class="tr"><span>Enable browser notifications</span><button class="tg" id="tnotif" type="button" role="switch" aria-label="Browser notifications"></button></div>
+<div style="font-size:13px;color:var(--mut);line-height:1.5;margin-top:4px">Get reminders even when the app is in the background. Requires permission.</div></section>
 <section><h3>PREFERENCES</h3>
 <div class="tr"><span>24-hour clock</span><button class="tg" id="t24" type="button" role="switch" aria-label="24-hour clock"></button></div>
 <div class="tr"><span>Animations and effects</span><button class="tg" id="tfx" type="button" role="switch" aria-label="Animations"></button></div></section>
@@ -1548,6 +1551,20 @@ function showToast(plan){
   beep(880,.08,'sine',.04);
   setTimeout(()=>beep(1320,.1,'sine',.04),120);
   setTimeout(dismiss,10000);
+
+  /* Also fire a real OS notification if permitted */
+  try{
+    if('Notification' in window && Notification.permission==='granted'){
+      const body=(tf(plan.s)+(plan.e?' – '+tf(plan.e):''))+'  ·  '+(plan.c||'Plan')+(plan.n?'\n'+plan.n:'');
+      const n=new Notification('⏰ '+plan.t,{
+        body,
+        tag:'chrono-'+plan.id,
+        icon:'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#050608"/><text x="32" y="44" font-size="36" text-anchor="middle" fill="#3b82f6" font-family="Arial" font-weight="bold">C</text></svg>'),
+        silent:false
+      });
+      n.onclick=()=>{window.focus();n.close();};
+    }
+  }catch(e){}
 }
 
 function checkReminders(){
@@ -1609,8 +1626,33 @@ function rSet(){
   });
   $('t24').setAttribute('aria-pressed',acct.h24!==false);
   $('tfx').setAttribute('aria-pressed',acct.fx!==false);
+  updateNotifToggle();
 }
 
+/* ---- Browser notification permission toggle ---- */
+function updateNotifToggle(){
+  const btn=$('tnotif');
+  if(!btn)return;
+  const supported='Notification' in window;
+  btn.setAttribute('aria-pressed',supported && Notification.permission==='granted');
+  btn.disabled=!supported;
+  if(!supported)btn.title='Not supported on this browser';
+}
+$('tnotif').onclick=async()=>{
+  if(!('Notification' in window))return;
+  if(Notification.permission==='granted'){
+    updateNotifToggle();
+    return;
+  }
+  try{
+    const r=await Notification.requestPermission();
+    updateNotifToggle();
+    if(r==='granted'){
+      beep(880,.08,'sine',.04);
+      setTimeout(()=>beep(1320,.1,'sine',.04),120);
+    }
+  }catch(e){}
+};
 $('t24').onclick=()=>sset({h24:acct.h24===false});
 $('tfx').onclick=()=>sset({fx:acct.fx===false});
 
