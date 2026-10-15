@@ -987,6 +987,163 @@ main{
 
 .empty{color:var(--mut);text-align:center;padding:32px 0;font-size:16px;letter-spacing:.05em}
 
+/* ============ SWIPE-TO-ACTION ============ */
+.swipe-wrap{
+  position:relative;
+  overflow:hidden;
+  border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);
+  isolation:isolate;
+}
+.swipe-wrap:first-of-type{border-top:0}
+
+/* Action backgrounds revealed behind the row */
+.swipe-bg{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  padding:0 26px;
+  font-family:Orbitron,sans-serif;
+  font-weight:900;
+  font-size:22px;
+  letter-spacing:.15em;
+  z-index:0;
+  pointer-events:none;
+  user-select:none;
+  transition:opacity .15s;
+}
+.swipe-bg.done{
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--acc) 85%,#000) 0%,
+    color-mix(in srgb,var(--acc) 60%,transparent) 70%,
+    transparent 100%);
+  color:var(--onacc);
+  justify-content:flex-start;
+  text-shadow:0 0 12px color-mix(in srgb,var(--onacc) 50%,transparent);
+  opacity:0;
+}
+.swipe-bg.del{
+  background:linear-gradient(270deg,
+    #ff2d1a 0%,
+    #ff6a1a 30%,
+    color-mix(in srgb,#ff2d1a 40%,transparent) 70%,
+    transparent 100%);
+  color:#fff;
+  justify-content:flex-end;
+  text-shadow:0 0 12px rgba(255,80,0,.7);
+  opacity:0;
+}
+.swipe-bg .ico{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+}
+.swipe-bg .ico b{
+  display:inline-grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  border:2px solid currentColor;
+  font-size:18px;
+}
+.swipe-wrap[data-dir="r"] .swipe-bg.done{opacity:1}
+.swipe-wrap[data-dir="l"] .swipe-bg.del{opacity:1}
+
+/* The row itself (moves on drag) */
+.swipe-row{
+  position:relative;
+  z-index:1;
+  background:color-mix(in srgb,var(--bg) 92%,var(--line));
+  transition:transform .3s cubic-bezier(.4,1.4,.5,1);
+  touch-action:pan-y;
+  will-change:transform;
+}
+.swipe-row.dragging{transition:none}
+.swipe-wrap[data-dir="r"] .swipe-row{transition:none}
+.swipe-wrap[data-dir="l"] .swipe-row{transition:none}
+
+/* Hint: small chevrons appear as you drag */
+.swipe-hint{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:16px;
+  opacity:0;
+  transition:opacity .2s;
+  pointer-events:none;
+  z-index:2;
+}
+.swipe-wrap[data-dir="r"] .swipe-hint.hint-r{opacity:.9;left:6px;color:var(--acc)}
+.swipe-wrap[data-dir="l"] .swipe-hint.hint-l{opacity:.9;right:6px;color:#ff2d1a}
+/* ============ FIRE / BURN EFFECT ============ */
+.burning{
+  position:relative;
+  animation:burnShake .25s ease-in-out 4;
+}
+.burning::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255,220,80,.9) 0%, rgba(255,140,0,.6) 30%, rgba(255,50,0,.4) 55%, transparent 80%),
+    radial-gradient(circle at 20% 60%, rgba(255,180,0,.7) 0%, transparent 45%),
+    radial-gradient(circle at 80% 40%, rgba(255,100,0,.7) 0%, transparent 45%);
+  mix-blend-mode:screen;
+  animation:fireFlicker .12s ease-in-out infinite alternate;
+}
+.burning .flame{
+  position:absolute;
+  bottom:0;
+  width:14px;
+  height:22px;
+  background:linear-gradient(0deg,#ff2d00 0%,#ff9500 40%,#ffdd00 75%,transparent 100%);
+  border-radius:50% 50% 20% 20%;
+  filter:blur(2px);
+  opacity:.95;
+  animation:flameRise 0.8s ease-out forwards;
+  pointer-events:none;
+  z-index:3;
+}
+.burning .ash{
+  position:absolute;
+  bottom:20%;
+  width:5px;
+  height:5px;
+  background:#3a3a3a;
+  border-radius:50%;
+  opacity:.8;
+  animation:ashFloat 1.4s ease-out forwards;
+  pointer-events:none;
+  z-index:3;
+}
+@keyframes burnShake{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(-3px,1px) rotate(-.6deg)}
+  75%{transform:translate(3px,-1px) rotate(.6deg)}
+}
+@keyframes fireFlicker{
+  0%{opacity:.85;filter:brightness(1)}
+  100%{opacity:1;filter:brightness(1.35)}
+}
+@keyframes flameRise{
+  0%{transform:translateY(0) scale(1);opacity:1}
+  100%{transform:translateY(-80px) scale(1.5);opacity:0}
+}
+@keyframes ashFloat{
+  0%{transform:translateY(0) scale(1);opacity:.8}
+  100%{transform:translateY(-50px) scale(.4);opacity:0}
+}
+
+.swipe-wrap.burned{
+  animation:burnAway 1.2s ease-out forwards;
+}
+@keyframes burnAway{
+  0%{opacity:1;filter:none}
+  60%{opacity:.7;filter:brightness(.6) sepia(.6) hue-rotate(-30deg)}
+  100%{opacity:0;filter:brightness(0) blur(6px);transform:scale(.96);max-height:0;margin:0;padding:0;border-width:0}
+}
 /* ============ CONFETTI ============ */
 .confetti-piece{
   position:fixed;
@@ -2015,46 +2172,79 @@ function rSch(){
   if(!selPlans.length){
     s.append(el('div','empty','Nothing planned — free day.'));
   }
-  selPlans.forEach(p=>{
-    const r=el('div','row'+(p.x?' d':''));
+   selPlans.forEach(p=>{
+    /* --- Build the swipe wrapper --- */
+    const wrap=el('div','swipe-wrap');
+    wrap.dataset.pid=String(p.id);
+
+    /* Background 1: complete action (revealed on right swipe) */
+    const bgDone=el('div','swipe-bg done');
+    const icoDone=el('span','ico');
+    icoDone.append(el('b','','✓'),document.createTextNode('DONE'));
+    bgDone.append(icoDone);
+
+    /* Background 2: delete action (revealed on left swipe) */
+    const bgDel=el('div','swipe-bg del');
+    const icoDel=el('span','ico');
+    icoDel.append(document.createTextNode('DELETE'),el('b','','🗑'));
+    bgDel.append(icoDel);
+
+    /* Small hint chevrons */
+    const hintR=el('div','swipe-hint hint-r','››');
+    const hintL=el('div','swipe-hint hint-l','‹‹');
+
+    /* The visible plan row */
+    const r=el('div','row swipe-row'+(p.x?' d':''));
+
     const t=el('div','t',(tf(p.s)+(p.e?' – '+tf(p.e):''))||'All day');
     const body=el('div','body');
-    const cb=el('input');
-    cb.type='checkbox';cb.checked=!!p.x;
+
+    const cb=el('button','chk'+(p.x?' on':''));
+    cb.type='button';
+    cb.setAttribute('role','checkbox');
+    cb.setAttribute('aria-checked',p.x?'true':'false');
     cb.setAttribute('aria-label','Mark done: '+p.t);
-  cb.onchange=async(e)=>{
-  p.x=cb.checked;
-  // Grab the row BEFORE re-render
-  const rowEl=cb.closest('.row');
-  let burstX=0,burstY=0;
-  if(rowEl){
-    const r=rowEl.getBoundingClientRect();
-    burstX=r.left+r.width/2;
-    burstY=r.top+r.height/2;
-  }
-  await savePlans();
-  rSch();
-  if(cb.checked){
-    boom(burstX,burstY);
-    completeFanfare();
-  }
-};
+    cb.onclick=async(e)=>{
+      e.stopPropagation();
+      const newState=!p.x;
+      p.x=newState;
+      const rowEl=cb.closest('.row');
+      let burstX=0,burstY=0;
+      if(rowEl){
+        const rr=rowEl.getBoundingClientRect();
+        burstX=rr.left+rr.width/2;
+        burstY=rr.top+rr.height/2;
+      }
+      await savePlans();
+      rSch();
+      if(newState){
+        boom(burstX,burstY);
+        completeFanfare();
+      }
+    };
+
     body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
-    if(p.r){
-      const rm=el('span','rem', '⏰ '+p.r+'m');
-      body.append(rm);
-    }
-    if(p.n){
-      const note=el('div','note',p.n);
-      body.append(note);
-    }
-    const a=el('div','act'),eb=el('button','','Edit'),db2=el('button','','Del');
+    if(p.r)body.append(el('span','rem','⏰ '+p.r+'m'));
+    if(p.n)body.append(el('div','note',p.n));
+
+    const a=el('div','act');
+    const eb=el('button','','Edit');
+    const db2=el('button','','Del');
     eb.type=db2.type='button';
-    eb.onclick=()=>openPlan(p);
-    db2.onclick=async()=>{plans=plans.filter(y=>y.id!==p.id);await savePlans();rSch();};
+    eb.onclick=(e)=>{e.stopPropagation();openPlan(p);};
+    db2.onclick=async(e)=>{
+      e.stopPropagation();
+      plans=plans.filter(y=>y.id!==p.id);
+      await savePlans();
+      rSch();
+    };
     a.append(eb,db2);
+
     r.append(t,body,a);
-    s.append(r);
+
+    wrap.append(bgDone,bgDel,hintR,hintL,r);
+    attachSwipe(wrap,p);
+    s.append(wrap);
   });
   box.append(s);
 
@@ -2114,6 +2304,134 @@ function unlockAudio(){
 ['pointerdown','touchstart','keydown','click'].forEach(ev=>{
   window.addEventListener(ev,unlockAudio,{once:false,passive:true});
 });
+/* ---- Swipe-to-action gesture engine ---- */
+function attachSwipe(wrap,plan){
+  const row=wrap.querySelector('.swipe-row');
+  if(!row)return;
+  const THRESH=110;         // px to trigger
+  const MAXDRAG=180;        // px max visual drag
+  let startX=0,startY=0,dx=0,dragging=false,pointerType='';
+
+  const setX=v=>{row.style.transform='translateX('+v+'px)';};
+
+  const reset=()=>{
+    wrap.removeAttribute('data-dir');
+    row.classList.add('dragging');
+    row.style.transform='translateX(0)';
+    requestAnimationFrame(()=>row.classList.remove('dragging'));
+  };
+
+  const onStart=(x,y,pt)=>{
+    if(plan.x)return; // already done, don't allow
+    startX=x;startY=y;dx=0;dragging=false;pointerType=pt||'';
+    row.classList.add('dragging');
+  };
+
+  const onMove=(x,y)=>{
+    if(!startX&&!startY)return;
+    const ddx=x-startX;
+    const ddy=y-startY;
+    // If mostly vertical → let it scroll
+    if(!dragging && Math.abs(ddy)>Math.abs(ddx) && Math.abs(ddy)>12){
+      startX=0;startY=0;
+      row.classList.remove('dragging');
+      return;
+    }
+    if(Math.abs(ddx)>6){dragging=true;}
+    if(!dragging)return;
+    dx=Math.max(-MAXDRAG,Math.min(MAXDRAG,ddx));
+    setX(dx);
+    if(dx>20)wrap.dataset.dir='r';
+    else if(dx<-20)wrap.dataset.dir='l';
+    else wrap.removeAttribute('data-dir');
+  };
+
+  const onEnd=async()=>{
+    if(!dragging){row.classList.remove('dragging');startX=0;startY=0;return;}
+    row.classList.remove('dragging');
+    if(dx>=THRESH){
+      // COMPLETE
+      wrap.removeAttribute('data-dir');
+      setX(0);
+      plan.x=true;
+      const rect=row.getBoundingClientRect();
+      await savePlans();
+      rSch();
+      boom(rect.left+rect.width/2,rect.top+rect.height/2);
+      completeFanfare();
+    }else if(dx<=-THRESH){
+      // DELETE (burn)
+      wrap.removeAttribute('data-dir');
+      burnAway(wrap,plan);
+    }else{
+      reset();
+    }
+    startX=0;startY=0;dx=0;dragging=false;
+  };
+
+  // ---- Touch ----
+  row.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    onStart(t.clientX,t.clientY,'touch');
+  },{passive:true});
+  row.addEventListener('touchmove',e=>{
+    const t=e.touches[0];
+    if(dragging){e.preventDefault();}
+    onMove(t.clientX,t.clientY);
+  },{passive:false});
+  row.addEventListener('touchend',onEnd);
+  row.addEventListener('touchcancel',onEnd);
+
+  // ---- Mouse ----
+  row.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    onStart(e.clientX,e.clientY,'mouse');
+    const mm=ev=>onMove(ev.clientX,ev.clientY);
+    const mu=()=>{
+      window.removeEventListener('mousemove',mm);
+      window.removeEventListener('mouseup',mu);
+      onEnd();
+    };
+    window.addEventListener('mousemove',mm);
+    window.addEventListener('mouseup',mu);
+  });
+
+  // Prevent accidental click after drag
+  row.addEventListener('click',e=>{
+    if(Math.abs(dx)>6){e.preventDefault();e.stopPropagation();}
+  },true);
+}
+
+/* ---- Burn-away animation when swiped to delete ---- */
+async function burnAway(wrap,plan){
+  // Add flames and ash
+  const flames=8;
+  for(let i=0;i<flames;i++){
+    const f=document.createElement('span');
+    f.className='flame';
+    f.style.left=(Math.random()*80+10)+'%';
+    f.style.animationDelay=(Math.random()*0.3)+'s';
+    wrap.appendChild(f);
+  }
+  for(let i=0;i<14;i++){
+    const a=document.createElement('span');
+    a.className='ash';
+    a.style.left=(Math.random()*80+10)+'%';
+    a.style.animationDelay=(Math.random()*0.5)+'s';
+    wrap.appendChild(a);
+  }
+  wrap.classList.add('burning');
+  // Burn sound — low whoosh
+  beep(120,.5,'sawtooth',.06);
+  setTimeout(()=>beep(80,.4,'triangle',.05),120);
+
+  // After fire animation, remove from state and re-render
+  setTimeout(async()=>{
+    plans=plans.filter(y=>y.id!==plan.id);
+    await savePlans();
+    rSch();
+  },1150);
+}
 /* ---- Confetti ---- */
 function boom(x,y){
   const colors=['#39ff14','#4dd2ff','#ff9f1c','#ff4d6d','#3b82f6','#00e5a8','#ffd60a','#ffffff','#ff2d95'];
