@@ -47,6 +47,13 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 .scr.on{display:flex;animation:fi .5s both}
 #auth{flex-direction:row;gap:72px}
 @media(max-width:700px){
+  /* Auth / startup screen */
+  #auth{flex-direction:column;gap:24px;padding:20px 16px}
+  .intro h2{font-size:clamp(30px,11vw,48px)!important;margin-bottom:8px}
+  .intro ul{font-size:13px}
+  .card{padding:22px;width:100%;max-width:400px}
+
+  /* Game screen */
   #cv{aspect-ratio:2/1;object-fit:contain;background:#000;border-radius:12px}
   #stage{width:100%}
   .hint{font-size:14px;margin:12px 0}
