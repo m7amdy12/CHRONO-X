@@ -1639,6 +1639,7 @@ function updateNotifToggle(){
   if(!supported)btn.title='Not supported on this browser';
 }
 $('tnotif').onclick=async()=>{
+  alert('Notification in window: '+('Notification' in window)+'\nPermission: '+(('Notification' in window)?Notification.permission:'n/a'));
   if(!('Notification' in window))return;
   if(Notification.permission==='granted'){
     updateNotifToggle();
