@@ -452,6 +452,18 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
   line-height:1;
   color:var(--fg);
 }
+.wk-day .mon{
+  font-size:9px;
+  letter-spacing:.15em;
+  color:var(--mut);
+  font-weight:700;
+  text-transform:uppercase;
+  opacity:.75;
+  margin-top:-1px;
+  margin-bottom:2px;
+}
+.wk-day.today .mon{color:var(--acc);opacity:1}
+.wk-day[aria-current=true] .mon{color:var(--onacc);opacity:.9}
 .wk-day .cnt{
   font-size:10px;
   letter-spacing:.05em;
@@ -496,6 +508,7 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
   .wk-day{min-width:58px;padding:8px 4px;border-radius:12px;gap:1px}
   .wk-day .dow{font-size:9px;letter-spacing:.1em}
   .wk-day .num{font-size:17px}
+  .wk-day .mon{font-size:8px;letter-spacing:.1em}
   .wk-day .cnt{font-size:9px;padding:1px 6px;min-width:18px}
 }
 /* ============ SCHEDULE — REDESIGNED ============ */
@@ -1383,6 +1396,7 @@ function rSch(){
     btn.append(
       el('span','dow',d.toLocaleDateString(undefined,{weekday:'short'})),
       el('span','num',d.getDate()),
+      el('span','mon',d.toLocaleDateString(undefined,{month:'short'}).toUpperCase()),
       el('span','cnt',l.length)
     );
     btn.onclick=()=>{selectedDay=k;rSch();};
