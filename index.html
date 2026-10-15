@@ -1213,43 +1213,94 @@ function tab(m){
   $('tu').setAttribute('aria-pressed',m==='up');
   $('ab').textContent=m==='in'?'Sign in':'Create account';
   $('ae').textContent='';
+  $('ab').disabled=false;
 }
 
 $('ti').onclick=()=>tab('in');
 $('tu').onclick=()=>tab('up');
 
-const savedUser = L.getItem('pw:user');
-const savedAcct = L.getItem('pw:acct');
-if(savedUser && savedAcct){
-  acct=JSON.parse(savedAcct);
-  try{plans=JSON.parse(L.getItem('pw:plans_'+acct.u))||[]}catch(e){plans=[]}
-  if(L.getItem('pw:s')==='1'){
-    look();startApp();show('app');
-  }
-}
+// Session is handled by Supabase now — nothing to load from localStorage.
 
-$('af').onsubmit=e=>{
-  e.preventDefault();
-  const u=$('au').value.trim().toLowerCase();
-  const p=$('ap').value;
-  if(!/^[a-z0-9_]{3,16}$/.test(u)){bad('Username: 3 to 16 letters, numbers or _');return;}
-  
-  if(mode==='in'){
-    const storedPass=L.getItem('pw:pass_'+u);
-    if(!storedPass || storedPass!==p){bad('Wrong username or password.');return;}
-    acct=JSON.parse(L.getItem('pw:acct_'+u));
-  } else {
-    if(L.getItem('pw:pass_'+u)){bad('That username is already taken.');return;}
-    L.setItem('pw:pass_'+u, p);
-    acct={u, dn:'', theme:'mono', ac:'', fx:true, h24:true};
-    L.setItem('pw:acct_'+u, JSON.stringify(acct));
+/* ---- Supabase auth: sign in / sign up ---- */
+/* ---- Supabase session listener ---- */
+sb.auth.onAuthStateChange(async (event,session)=>{
+  if(session && session.user){
+    currentUser=session.user;
+    acct={
+      u:session.user.id,
+      email:session.user.email,
+      dn:session.user.user_metadata?.display_name||'',
+      theme:'mono', ac:'', fx:true, h24:true
+    };
+    // Load the user's display name from Supabase metadata
+    if(session.user.user_metadata?.display_name){
+      acct.dn=session.user.user_metadata.display_name;
+    }
+    // Load user preferences from Supabase
+    const prefs=session.user.user_metadata?.prefs;
+    if(prefs){
+      acct.theme=prefs.theme||'mono';
+      acct.ac=prefs.ac||'';
+      acct.fx=prefs.fx!==false;
+      acct.h24=prefs.h24!==false;
+    }
+    look();
+
+    if(event==='SIGNED_IN' || event==='INITIAL_SESSION'){
+      if(acct.dn){
+        startApp();
+        show('app');
+      }else{
+        show('name');
+      }
+    }
+  }else{
+    currentUser=null;
+    acct=null;
   }
-  L.setItem('pw:user', u);
-  L.setItem('pw:acct', JSON.stringify(acct));
-  try{plans=JSON.parse(L.getItem('pw:plans_'+u))||[]}catch(e){plans=[]}
-  $('ap').value='';
-  look();
-  if(acct.dn){intro();}else{show('name');}
+});
+$('af').onsubmit=async e=>{
+  e.preventDefault();
+  $('ae').textContent='';
+  const em=$('au').value.trim().toLowerCase();
+  const pw=$('ap').value;
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){bad('Please enter a valid email address.');return;}
+  if(pw.length<6){bad('Password must be at least 6 characters.');return;}
+
+  $('ab').disabled=true;
+  $('ab').textContent='Connecting…';
+
+  try{
+    let result;
+    if(mode==='in'){
+      result=await sb.auth.signInWithPassword({email:em,password:pw});
+    }else{
+      result=await sb.auth.signUp({email:em,password:pw});
+    }
+
+    if(result.error){
+      bad(result.error.message);
+      $('ab').disabled=false;
+      $('ab').textContent=mode==='in'?'Sign in':'Create account';
+      return;
+    }
+
+    // Sign-up case: user must confirm email
+    if(mode==='up' && result.data.user && !result.data.session){
+      bad('Check your email to confirm your account, then sign in.');
+      $('ab').disabled=false;
+      $('ab').textContent='Create account';
+      return;
+    }
+
+    // Signed in successfully — session listener will handle the rest
+  }catch(err){
+    bad('Connection error. Try again.');
+    console.error(err);
+    $('ab').disabled=false;
+    $('ab').textContent=mode==='in'?'Sign in':'Create account';
+  }
 };
 
 $('nf').onsubmit=e=>{
