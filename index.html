@@ -599,6 +599,146 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
 
 .empty{color:var(--mut);text-align:center;padding:32px 0;font-size:16px;letter-spacing:.05em}
 
+/* ============ NOTIFICATION TOASTS ============ */
+#toasts{
+  position:fixed;
+  top:calc(20px + env(safe-area-inset-top,0px));
+  right:20px;
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-width:380px;
+  width:calc(100vw - 40px);
+  pointer-events:none;
+}
+.toast{
+  pointer-events:auto;
+  position:relative;
+  background:color-mix(in srgb,var(--bg) 92%,var(--line));
+  border:1px solid var(--acc);
+  border-radius:16px;
+  padding:16px 18px 16px 52px;
+  box-shadow:0 15px 40px rgba(0,0,0,.6),0 0 0 1px color-mix(in srgb,var(--acc) 30%,transparent),0 0 30px color-mix(in srgb,var(--acc) 25%,transparent);
+  animation:toastIn .45s cubic-bezier(.34,1.56,.64,1) both;
+  cursor:pointer;
+  overflow:hidden;
+  backdrop-filter:blur(12px);
+}
+.toast::before{
+  content:"⏰";
+  position:absolute;
+  left:16px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:22px;
+  animation:toastBell 1.4s ease-in-out infinite;
+}
+.toast::after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:0;
+  height:3px;
+  background:var(--acc);
+  animation:toastBar 10s linear forwards;
+  transform-origin:left;
+}
+.toast h4{
+  margin:0 0 4px;
+  font-family:Orbitron,sans-serif;
+  font-size:11px;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:var(--acc);
+  font-weight:700;
+}
+.toast .ttl{
+  font-size:16px;
+  font-weight:700;
+  color:var(--fg);
+  margin:0 0 4px;
+  letter-spacing:.02em;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.toast .meta{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  font-size:12px;
+  color:var(--mut);
+  letter-spacing:.05em;
+  flex-wrap:wrap;
+}
+.toast .meta .tag{
+  padding:1px 8px;
+  border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);
+  color:var(--acc);
+  border-radius:99px;
+  font-weight:700;
+  font-size:10px;
+  letter-spacing:.08em;
+}
+.toast .nt{
+  margin-top:8px;
+  font-size:13px;
+  color:var(--mut);
+  line-height:1.4;
+  padding-left:10px;
+  border-left:2px solid color-mix(in srgb,var(--acc) 50%,transparent);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.toast.bye{
+  animation:toastOut .35s ease forwards;
+}
+
+@keyframes toastIn{
+  from{opacity:0;transform:translateX(120%) scale(.9)}
+  to{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes toastOut{
+  to{opacity:0;transform:translateX(120%) scale(.9);max-height:0;margin:0;padding:0;border-width:0}
+}
+@keyframes toastBell{
+  0%,100%{transform:translateY(-50%) rotate(0)}
+  20%{transform:translateY(-50%) rotate(-14deg)}
+  40%{transform:translateY(-50%) rotate(12deg)}
+  60%{transform:translateY(-50%) rotate(-8deg)}
+}
+@keyframes toastBar{
+  from{transform:scaleX(1)}
+  to{transform:scaleX(0)}
+}
+
+/* Mobile: bottom-center */
+@media(max-width:700px){
+  #toasts{
+    top:auto;
+    right:12px;
+    left:12px;
+    bottom:calc(20px + env(safe-area-inset-bottom,0px));
+    max-width:none;
+    width:auto;
+  }
+  .toast{
+    padding:14px 16px 14px 48px;
+    border-radius:14px;
+  }
+  .toast::before{left:14px;font-size:20px}
+  .toast .ttl{font-size:15px}
+  @keyframes toastIn{
+    from{opacity:0;transform:translateY(120%) scale(.9)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+  @keyframes toastOut{
+    to{opacity:0;transform:translateY(120%) scale(.9);max-height:0;margin:0;padding:0;border-width:0}
+  }
+}
 /* Settings View */
 .set section{border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:18px;display:grid;gap:16px;background:color-mix(in srgb,var(--bg) 90%,var(--line))}
 .set h3{margin:0;letter-spacing:.1em;font-size:16px;color:var(--mut)}
@@ -786,7 +926,7 @@ dialog h3{margin:0;font-size:24px}
 <label>Remind me<select id="pr"><option value="">No reminder</option><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="120">2 hours before</option><option value="1440">1 day before</option></select></label>
 <div class="err" id="pm" role="alert"></div>
 <div class="ar" style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button class="p">Save Plan</button><button type="button" id="pcn">Cancel</button><button type="button" id="pdel" hidden style="color:#ef4444;border-color:#ef4444">Delete</button></div>
-</form></dialog>
+</form></dialog><div id="toasts" aria-live="polite"></div>
 
 <script>
 window.addEventListener('error',e=>{
@@ -1064,6 +1204,7 @@ document.addEventListener('keydown',e=>{
 function startApp(){
   look();
   week=mon(new Date());
+    startReminderWatch();
   $('mn').textContent=acct.dn||acct.u;
   $('mu').textContent='@'+acct.u;
   $('dn').value=acct.dn;
@@ -1186,6 +1327,66 @@ $('pf').onsubmit=e=>{
   rSch();
 };
 
+/* ---- Notifications ---- */
+const notified={};   // tracks fired plans so we don't spam
+let notifTimer=null;
+
+function parsePlanDate(p){
+  if(!p.d||!p.s)return null;
+  const dt=new Date(p.d+'T'+p.s+':00');
+  return isNaN(dt.getTime())?null:dt;
+}
+
+function showToast(plan){
+  const box=$('toasts');
+  if(!box)return;
+  const t=document.createElement('div');
+  t.className='toast';
+  const timeStr=tf(plan.s)+(plan.e?' – '+tf(plan.e):'');
+  const h=document.createElement('h4');h.textContent='REMINDER';
+  const ttl=document.createElement('div');ttl.className='ttl';ttl.textContent=plan.t;
+  const meta=document.createElement('div');meta.className='meta';
+  const timeSpan=document.createElement('span');timeSpan.textContent=timeStr;
+  const tag=document.createElement('span');tag.className='tag';tag.textContent=plan.c||'Plan';
+  meta.append(timeSpan,tag);
+  t.append(h,ttl,meta);
+  if(plan.n){
+    const nt=document.createElement('div');nt.className='nt';nt.textContent=plan.n;
+    t.append(nt);
+  }
+  const dismiss=()=>{
+    if(t.classList.contains('bye'))return;
+    t.classList.add('bye');
+    setTimeout(()=>t.remove(),400);
+  };
+  t.onclick=dismiss;
+  box.append(t);
+  beep(880,.08,'sine',.04);
+  setTimeout(()=>beep(1320,.1,'sine',.04),120);
+  setTimeout(dismiss,10000);
+}
+
+function checkReminders(){
+  const now=Date.now();
+  plans.forEach(p=>{
+    if(!p.r||p.x)return;
+    const dt=parsePlanDate(p);
+    if(!dt)return;
+    const remindAt=dt.getTime()-parseInt(p.r,10)*60000;
+    const key=p.id;
+    if(notified[key])return;
+    if(now>=remindAt && now<remindAt+120000 && now<dt.getTime()){
+      notified[key]=true;
+      showToast(p);
+    }
+  });
+}
+
+function startReminderWatch(){
+  if(notifTimer)clearInterval(notifTimer);
+  checkReminders();
+  notifTimer=setInterval(checkReminders,30000);
+}
 /* ---- Settings ---- */
 function sset(p){
   Object.assign(acct,p);
