@@ -1069,6 +1069,7 @@ const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=nu
 let acct=null,plans=[],view='sch',week,mode='in',ed=null;
 let notifTimer=null;
 const notified={};
+let selectedDay=null;
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const mon=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
 const tf=s=>{if(!s)return'';if(acct&&acct.h24===false){const[h,m]=s.split(':'),n=+h;return(n%12||12)+':'+m+(n<12?' AM':' PM')}return s};
@@ -1346,7 +1347,6 @@ function savePlans(){
   L.setItem('pw:plans_'+acct.u, JSON.stringify(plans));
 }
 
-let selectedDay=null;   // iso string of the currently shown day
 
 function rSch(){
   const box=$('week');
