@@ -427,8 +427,20 @@ dialog{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-
   dialog form{padding:22px 18px;gap:14px}
   dialog h3{font-size:20px}
   dialog .two{grid-template-columns:1fr;gap:12px}
-  dialog label{font-size:13px}
-  dialog input,dialog select{min-height:48px;font-size:16px}
+  dialog label{font-size:13px;min-width:0}
+  dialog input,
+  dialog select,
+  dialog input[type=date],
+  dialog input[type=time]{
+    min-height:48px;
+    font-size:16px;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    -webkit-appearance:none;
+    appearance:none;
+  }
 }
 dialog[open]{animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
 dialog::backdrop{background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
