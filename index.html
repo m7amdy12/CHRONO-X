@@ -1136,6 +1136,18 @@ Continue with Google
 </main>
 </div>
 
+<dialog id="uiDlg">
+  <form id="uiForm">
+    <h3 class="o" id="uiTitle">Title</h3>
+    <p id="uiMsg" style="margin:0;color:var(--mut);font-size:14px;line-height:1.5"></p>
+    <label id="uiInputWrap" hidden><span id="uiLabel">Value</span><input id="uiInput"></label>
+    <div class="err" id="uiErr" role="alert"></div>
+    <div class="ar" style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button type="button" id="uiCancel">Cancel</button>
+      <button class="p" id="uiOk">OK</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="dlg"><form id="pf">
 <h3 class="o" id="dh">New plan</h3>
 <label>Plan title<input id="pt" maxlength="80" required></label>
@@ -1222,6 +1234,43 @@ $('tu').onclick=()=>tab('up');
 // Session is handled by Supabase now — nothing to load from localStorage.
 
 /* ---- Supabase auth: sign in / sign up ---- */
+/* ---- Custom modal (replaces prompt/confirm) ---- */
+let uiResolve=null;
+function ask(opts){
+  return new Promise(resolve=>{
+    uiResolve=resolve;
+    const d=$('uiDlg');
+    $('uiTitle').textContent=opts.title||'Confirm';
+    $('uiMsg').textContent=opts.msg||'';
+    $('uiMsg').style.display=opts.msg?'block':'none';
+    if(opts.input){
+      $('uiInputWrap').hidden=false;
+      $('uiLabel').textContent=opts.label||'Value';
+      $('uiInput').type=opts.inputType||'text';
+      $('uiInput').value=opts.value||'';
+      $('uiInput').placeholder=opts.placeholder||'';
+    }else{
+      $('uiInputWrap').hidden=true;
+    }
+    $('uiOk').textContent=opts.okText||'OK';
+    $('uiCancel').textContent=opts.cancelText||'Cancel';
+    $('uiCancel').style.display=opts.noCancel?'none':'';
+    $('uiErr').textContent='';
+    d.showModal();
+    if(opts.input)setTimeout(()=>$('uiInput').focus(),50);
+  });
+}
+$('uiCancel').onclick=()=>{const d=$('uiDlg');if(uiResolve)uiResolve(null);uiResolve=null;d.close();};
+$('uiForm').onsubmit=e=>{
+  e.preventDefault();
+  const d=$('uiDlg');
+  const hasInput=!$('uiInputWrap').hidden;
+  const val=hasInput?$('uiInput').value:true;
+  if(uiResolve)uiResolve(val);
+  uiResolve=null;
+  d.close();
+};
+$('uiDlg').addEventListener('cancel',()=>{if(uiResolve)uiResolve(null);uiResolve=null;});
 /* ---- Google sign-in ---- */
 $('gbtn').onclick=async()=>{
   try{
@@ -1237,9 +1286,17 @@ $('gbtn').onclick=async()=>{
 };
 /* ---- Forgot password ---- */
 $('fpw').onclick=async()=>{
-  const em=prompt('Enter your email address to reset your password:');
+  const em=await ask({
+    title:'Reset password',
+    msg:'We’ll email you a link to set a new password.',
+    input:true,
+    label:'Your email',
+    inputType:'email',
+    placeholder:'you@example.com',
+    okText:'Send reset link'
+  });
   if(!em)return;
-  const clean=em.trim().toLowerCase();
+  const clean=String(em).trim().toLowerCase();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)){bad('Please enter a valid email.');return;}
   try{
     const {error}=await sb.auth.resetPasswordForEmail(clean,{
@@ -1257,11 +1314,25 @@ $('fpw').onclick=async()=>{
 /* ---- Supabase session listener ---- */
 sb.auth.onAuthStateChange(async (event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
-    const newPw=prompt('Enter your NEW password (min 6 characters):');
-    if(!newPw || newPw.length<6){alert('Password too short. Try again.');return;}
+    const newPw=await ask({
+      title:'Set new password',
+      msg:'Choose a new password for your account.',
+      input:true,
+      label:'New password (min 6 characters)',
+      inputType:'password',
+      okText:'Update password'
+    });
+    if(!newPw)return;
+    if(newPw.length<6){
+      await ask({title:'Too short',msg:'Password must be at least 6 characters.',noCancel:true});
+      return;
+    }
     const {error}=await sb.auth.updateUser({password:newPw});
-    if(error){alert('Failed: '+error.message);return;}
-    alert('✅ Password updated. You can now sign in.');
+    if(error){
+      await ask({title:'Error',msg:error.message,noCancel:true});
+      return;
+    }
+    await ask({title:'✅ Done',msg:'Your password was updated. Please sign in.',noCancel:true});
     await sb.auth.signOut();
     show('auth');
     return;
@@ -1928,11 +1999,15 @@ $('impf').onchange=e=>{
   reader.readAsText(file);
 };
 $('rp').onclick=()=>intro();
-$('out').onclick=()=>{
-  L.removeItem('pw:s');
-  L.removeItem('pw:user');
-  L.removeItem('pw:acct');
+$('out').onclick=async()=>{
+  try{
+    await sb.auth.signOut();
+  }catch(e){console.error(e)}
+  currentUser=null;
   acct=null;
+  plans=[];
+  selectedDay=null;
+  if(notifTimer){clearInterval(notifTimer);notifTimer=null;}
   tab('in');
   show('auth');
 };
