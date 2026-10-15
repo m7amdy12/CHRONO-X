@@ -987,6 +987,20 @@ main{
 
 .empty{color:var(--mut);text-align:center;padding:32px 0;font-size:16px;letter-spacing:.05em}
 
+/* ============ CONFETTI ============ */
+.confetti-piece{
+  position:fixed;
+  width:10px;
+  height:10px;
+  z-index:9999;
+  pointer-events:none;
+  border-radius:2px;
+  will-change:transform,opacity;
+}
+@keyframes confettiFall{
+  0%{transform:translate(0,0) rotate(0deg);opacity:1}
+  100%{transform:translate(var(--dx,0),110vh) rotate(720deg);opacity:0}
+}
 /* ============ NOTIFICATION TOASTS ============ */
 #toasts{
   position:fixed;
@@ -1997,7 +2011,16 @@ function rSch(){
     const cb=el('input');
     cb.type='checkbox';cb.checked=!!p.x;
     cb.setAttribute('aria-label','Mark done: '+p.t);
-   cb.onchange=async()=>{p.x=cb.checked;await savePlans();rSch();};
+  cb.onchange=async(e)=>{
+  p.x=cb.checked;
+  await savePlans();
+  rSch();
+  if(cb.checked){
+    const r=cb.getBoundingClientRect();
+    boom(r.left+r.width/2,r.top+r.height/2);
+    completeFanfare();
+  }
+};
     body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
     if(p.r){
       const rm=el('span','rem', '⏰ '+p.r+'m');
@@ -2073,6 +2096,38 @@ function unlockAudio(){
 ['pointerdown','touchstart','keydown','click'].forEach(ev=>{
   window.addEventListener(ev,unlockAudio,{once:false,passive:true});
 });
+/* ---- Confetti ---- */
+function boom(x,y){
+  const colors=['#39ff14','#4dd2ff','#ff9f1c','#ff4d6d','#3b82f6','#00e5a8','#ffd60a','#ffffff'];
+  const count=42;
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    const c=colors[Math.floor(Math.random()*colors.length)];
+    p.style.background=c;
+    p.style.left=x+'px';
+    p.style.top=y+'px';
+    p.style.boxShadow='0 0 8px '+c;
+    const angle=Math.random()*Math.PI*2;
+    const speed=2+Math.random()*6;
+    const dx=Math.cos(angle)*speed*20;
+    const dy=Math.sin(angle)*speed*15-150;
+    p.style.setProperty('--dx',dx+'px');
+    p.style.setProperty('--dy',dy+'px');
+    const dur=1.2+Math.random()*1.4;
+    p.style.animation=`confettiFall ${dur}s cubic-bezier(.2,.8,.4,1) forwards`;
+    p.style.transform=`translate(0,0)`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),(dur+0.2)*1000);
+  }
+}
+
+function completeFanfare(){
+  // Three-note happy chime
+  beep(660,.08,'sine',.05);
+  setTimeout(()=>beep(880,.08,'sine',.05),90);
+  setTimeout(()=>beep(1320,.14,'sine',.06),180);
+}
 /* ---- Live clock ---- */
 let clockTimer=null;
 function tickClock(){
