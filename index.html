@@ -23,6 +23,8 @@ button:active{transform:scale(.97)}
 button.p{background:var(--acc);color:var(--onacc);border-color:var(--acc);position:relative;overflow:hidden;box-shadow:0 4px 20px color-mix(in srgb,var(--acc) 30%,transparent)}
 button.p:hover{filter:brightness(1.15);color:var(--onacc)}
 input,select{min-height:44px;padding:0 14px;background:color-mix(in srgb,var(--bg) 90%,var(--line));border:1px solid var(--line);width:100%;border-radius:12px}
+textarea{min-height:80px;padding:12px 14px;background:color-mix(in srgb,var(--bg) 90%,var(--line));border:1px solid var(--line);width:100%;border-radius:12px;font:inherit;color:var(--fg);resize:vertical;box-sizing:border-box}
+textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 30%,transparent);outline:none}
 input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 30%,transparent)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:3px}
 label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
@@ -497,6 +499,7 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
 /* Plan body */
 .day .row .body{
   display:flex;
+  flex-wrap:wrap;
   align-items:center;
   gap:10px;
   min-width:0;
@@ -527,6 +530,22 @@ main{padding:40px clamp(20px,5vw,60px) 80px;max-width:1100px;width:100%;position
   white-space:nowrap;
   background:color-mix(in srgb,var(--acc) 8%,transparent);
   flex-shrink:0;
+}
+.day .row .note{
+  grid-column:2 / -1;
+  margin-top:6px;
+  color:var(--mut);
+  font-size:14px;
+  font-weight:500;
+  letter-spacing:.02em;
+  line-height:1.4;
+  padding:8px 12px;
+  border-left:2px solid color-mix(in srgb,var(--acc) 50%,transparent);
+  background:color-mix(in srgb,var(--acc) 5%,transparent);
+  border-radius:0 8px 8px 0;
+  white-space:pre-wrap;
+  word-break:break-word;
+  max-width:100%;
 }
 
 /* Action buttons */
@@ -761,7 +780,8 @@ dialog h3{margin:0;font-size:24px}
 <label>Plan title<input id="pt" maxlength="80" required></label>
 <label>Date<input id="pd" type="date" required></label>
 <div class="two"><label>Start<input id="ps" type="time" required></label><label>End<input id="pe" type="time"></label></div>
-<label>Type<select id="pc"><option>Work</option><option>Study</option><option>Life</option><option>Health</option></select></label>
+<label>Type<input id="pc" type="text" maxlength="24" placeholder="e.g. Work, Gym, Study…" list="pcList"><datalist id="pcList"><option>Work</option><option>Study</option><option>Life</option><option>Health</option><option>Gym</option><option>Personal</option></datalist></label>
+<label>Note (optional)<textarea id="pn" rows="3" maxlength="300" placeholder="Add details, location, links…"></textarea></label>
 <div class="err" id="pm" role="alert"></div>
 <div class="ar" style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button class="p">Save Plan</button><button type="button" id="pcn">Cancel</button><button type="button" id="pdel" hidden style="color:#ef4444;border-color:#ef4444">Delete</button></div>
 </form></dialog>
@@ -1096,7 +1116,11 @@ function rSch(){
       cb.type='checkbox';cb.checked=!!p.x;
       cb.setAttribute('aria-label','Mark done: '+p.t);
       cb.onchange=()=>{p.x=cb.checked;savePlans();rSch();};
-      body.append(cb,el('span','x',p.t),el('span','g',({Work:'\u25c6 ',Study:'\u25b2 ',Life:'\u25cf ',Health:'+ '}[p.c]||'')+p.c));
+      body.append(cb,el('span','x',p.t),el('span','g',p.c||'Plan'));
+      if(p.n){
+        const note=el('div','note',p.n);
+        body.append(note);
+      }
       const a=el('div','act'),eb=el('button','','Edit'),db2=el('button','','Del');
       eb.type=db2.type='button';
       eb.onclick=()=>openPlan(p);
@@ -1124,7 +1148,8 @@ function openPlan(p,k){
   $('pd').value=p?p.d:k;
   $('ps').value=p?p.s:'';
   $('pe').value=p?p.e:'';
-  $('pc').value=p?p.c:'Work';
+  $('pc').value=p?(p.c||''):'';
+  $('pn').value=p?(p.n||''):'';
   $('dh').textContent=p?'Edit plan':'New plan';
   $('pdel').hidden=!p;
   $('pm').textContent='';
@@ -1136,10 +1161,22 @@ $('pdel').onclick=()=>{plans=plans.filter(y=>y.id!==ed.id);savePlans();$('dlg').
 
 $('pf').onsubmit=e=>{
   e.preventDefault();
-  const t=$('pt').value.trim(),d=$('pd').value,s=$('ps').value,en=$('pe').value;
+  const t=$('pt').value.trim(),
+        d=$('pd').value,
+        s=$('ps').value,
+        en=$('pe').value,
+        n=$('pn').value.trim(),
+        ty=$('pc').value.trim()||'Plan';
   if(!t||!d)return;
   if(en&&en<=s){$('pm').textContent='End time must be after the start time.';return;}
-  const o={t,d,s,e:en,c:$('pc').value};
+  const o={t,d,s,e:en,c:ty,n};
+  if(ed)Object.assign(ed,o);
+  else plans.push({id:Date.now()+Math.random(),x:false,...o});
+  savePlans();
+  $('dlg').close();
+  week=mon(new Date(d+'T00:00'));
+  rSch();
+};
   if(ed)Object.assign(ed,o);
   else plans.push({id:Date.now()+Math.random(),x:false,...o});
   savePlans();
