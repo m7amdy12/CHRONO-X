@@ -1303,12 +1303,28 @@ $('af').onsubmit=async e=>{
   }
 };
 
-$('nf').onsubmit=e=>{
+$('nf').onsubmit=async e=>{
   e.preventDefault();
-  acct.dn=$('nn').value.trim();
-  L.setItem('pw:acct_'+acct.u, JSON.stringify(acct));
-  L.setItem('pw:acct', JSON.stringify(acct));
-  intro();
+  const name=$('nn').value.trim();
+  if(!name)return;
+  $('nn').disabled=true;
+
+  try{
+    const {error}=await sb.auth.updateUser({
+      data:{display_name:name}
+    });
+    if(error){
+      console.error(error);
+      $('nn').disabled=false;
+      return;
+    }
+    acct.dn=name;
+    $('nn').disabled=false;
+    intro();
+  }catch(err){
+    console.error(err);
+    $('nn').disabled=false;
+  }
 };
 
 function intro(){show('game');startGame();}
@@ -1739,14 +1755,13 @@ function startReminderWatch(){
 /* ---- Settings ---- */
 function sset(p){
   Object.assign(acct,p);
-  try{
-    L.setItem('pw:l',JSON.stringify({theme:acct.theme,ac:acct.ac,fx:acct.fx}));
-    L.setItem('pw:acct_'+acct.u, JSON.stringify(acct));
-    L.setItem('pw:acct', JSON.stringify(acct));
-  }catch(e){}
   look();
   rSet();
   rSch();
+  // Save prefs to Supabase (fire-and-forget)
+  sb.auth.updateUser({
+    data:{prefs:{theme:acct.theme,ac:acct.ac,fx:acct.fx,h24:acct.h24}}
+  }).catch(()=>{});
 }
 
 function rSet(){
@@ -1798,14 +1813,15 @@ $('tnotif').onclick=async()=>{
 $('t24').onclick=()=>sset({h24:acct.h24===false});
 $('tfx').onclick=()=>sset({fx:acct.fx===false});
 
-$('pfm').onsubmit=e=>{
+$('pfm').onsubmit=async e=>{
   e.preventDefault();
   const n=$('dn').value.trim();
   if(!n)return;
   acct.dn=n;
   $('mn').textContent=n;
-  L.setItem('pw:acct_'+acct.u, JSON.stringify(acct));
-  L.setItem('pw:acct', JSON.stringify(acct));
+  try{
+    await sb.auth.updateUser({data:{display_name:n}});
+  }catch(err){console.error(err);}
 };
 
 /* ---- Backup: Export ---- */
