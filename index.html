@@ -1658,7 +1658,11 @@ function go(v){
 document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>go(b.dataset.v));
 
 async function savePlans(){
-  if(!currentUser)return;
+  console.log('[savePlans] called. currentUser:',currentUser?currentUser.id:'NULL','plans.length:',plans.length);
+  if(!currentUser){
+    console.warn('[savePlans] No currentUser — aborting.');
+    return;
+  }
   try{
     // Fetch existing plan IDs for this user
     const {data:existing,error:fetchErr}=await sb
@@ -1695,8 +1699,10 @@ async function savePlans(){
       if(error)throw error;
     }
   }catch(err){
-    console.error('Save failed:',err);
+    console.error('[savePlans] FAILED:',err);
+    alert('Save failed: '+(err.message||JSON.stringify(err)));
   }
+  console.log('[savePlans] done.');
 }
 
 
@@ -1835,7 +1841,7 @@ $('pf').onsubmit=async e=>{
   if(en&&en<=s){$('pm').textContent='End time must be after the start time.';return;}
   const o={t,d,s,e:en,c:ty,n,r};
   if(ed)Object.assign(ed,o);
-  else plans.push({id:Date.now()+Math.random(),x:false,...o});
+  else plans.push({id:crypto.randomUUID(),x:false,...o});
   await savePlans();
   $('dlg').close();
   week=mon(new Date(d+'T00:00'));
