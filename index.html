@@ -815,6 +815,161 @@ main{
   opacity:.7;
 }
 
+/* ============ FRIENDS FLOATING PANEL ============ */
+.friends-panel{
+  position:fixed;
+  top:100px;
+  right:24px;
+  width:320px;
+  max-height:calc(100vh - 140px);
+  background:color-mix(in srgb,var(--bg) 96%,var(--line));
+  border:1px solid var(--acc);
+  border-radius:20px;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.6),
+    0 0 0 1px color-mix(in srgb,var(--acc) 25%,transparent),
+    0 0 40px color-mix(in srgb,var(--acc) 18%,transparent);
+  z-index:80;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  transform-origin:top right;
+  animation:fpIn .38s cubic-bezier(.34,1.4,.5,1) both;
+  backdrop-filter:blur(16px);
+}
+.friends-panel[hidden]{display:none}
+.friends-panel.closing{
+  animation:fpOut .28s cubic-bezier(.5,0,.7,.3) forwards;
+}
+
+@keyframes fpIn{
+  0%{
+    opacity:0;
+    transform:scale(.5) translate(40px,-40px);
+    filter:blur(6px);
+  }
+  60%{
+    opacity:1;
+    filter:blur(0);
+  }
+  100%{
+    opacity:1;
+    transform:scale(1) translate(0,0);
+  }
+}
+@keyframes fpOut{
+  0%{opacity:1;transform:scale(1) translate(0,0)}
+  100%{opacity:0;transform:scale(.6) translate(40px,-40px);filter:blur(6px)}
+}
+
+.fp-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 16px;
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--acc) 8%,transparent);
+  cursor:grab;
+  user-select:none;
+}
+.fp-header:active{cursor:grabbing}
+.fp-title{
+  font-family:Orbitron,sans-serif;
+  font-weight:900;
+  font-size:13px;
+  letter-spacing:.25em;
+  color:var(--acc);
+  text-shadow:0 0 10px color-mix(in srgb,var(--acc) 50%,transparent);
+}
+.fp-close{
+  width:28px;
+  height:28px;
+  min-height:28px;
+  padding:0;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--fg);
+  font-size:18px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:all .2s;
+}
+.fp-close:hover{
+  border-color:var(--acc);
+  color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 12%,transparent);
+}
+
+.fp-body{
+  padding:16px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.fp-add{
+  width:100%;
+  min-height:40px;
+  font-size:13px;
+  letter-spacing:.06em;
+}
+.fp-section h4{
+  margin:0 0 8px;
+  font-size:11px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--mut);
+  font-weight:700;
+}
+.fp-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.fp-empty{
+  font-size:13px;
+  color:var(--mut);
+  font-style:italic;
+  text-align:center;
+  padding:10px 0;
+  opacity:.6;
+}
+
+/* Mobile: Friends becomes a regular tab view, not a floating panel */
+@media(max-width:900px){
+  #v-friends.friends-panel{
+    position:static !important;
+    top:auto !important;
+    left:auto !important;
+    right:auto !important;
+    width:100% !important;
+    max-width:none !important;
+    max-height:none !important;
+    box-shadow:none !important;
+    background:transparent !important;
+    border:0 !important;
+    border-radius:0 !important;
+    animation:none !important;
+    backdrop-filter:none !important;
+    display:none;
+  }
+  #v-friends.friends-panel.on{
+    display:block;
+  }
+  /* On mobile, always show the panel body without the header chrome */
+  #v-friends .fp-header{
+    display:none;
+  }
+  #v-friends .fp-body{
+    padding:0;
+  }
+  #v-friends .fp-add{
+    width:auto;
+  }
+}
 /* ============ MOBILE BOTTOM TAB BAR ============ */
 #tabbar{
   display:none;
@@ -1689,36 +1844,36 @@ Continue with Google
 </div>
 </main>
 
-<!-- Friends + Activity column (desktop side panel / mobile tab) -->
-<div class="view" id="v-friends">
-  <div class="vh">
-    <div>
-      <h2 class="o">FRIENDS</h2>
-      <p>Share plans, send comments, stay accountable.</p>
-    </div>
-    <button class="p" id="addFriend" type="button">+ Add Friend</button>
+<!-- Friends floating panel (desktop) / view (mobile) -->
+<div id="v-friends" class="friends-panel" hidden>
+  <div class="fp-header" id="fpDrag">
+    <span class="fp-title o">FRIENDS</span>
+    <button class="fp-close" id="fpClose" type="button" aria-label="Close friends">×</button>
   </div>
+  <div class="fp-body">
+    <button class="p fp-add" id="addFriend" type="button">+ Add Friend</button>
 
-  <section class="side-card">
-    <h3>YOUR FRIENDS</h3>
-    <div id="friendsList" class="side-list">
-      <div class="side-empty">No friends yet — add someone to get started.</div>
+    <div class="fp-section">
+      <h4>YOUR FRIENDS</h4>
+      <div id="friendsList" class="fp-list">
+        <div class="fp-empty">No friends yet.</div>
+      </div>
     </div>
-  </section>
 
-  <section class="side-card">
-    <h3>SHARED WITH YOU</h3>
-    <div id="sharedList" class="side-list">
-      <div class="side-empty">Nothing shared yet.</div>
+    <div class="fp-section">
+      <h4>SHARED WITH YOU</h4>
+      <div id="sharedList" class="fp-list">
+        <div class="fp-empty">Nothing shared yet.</div>
+      </div>
     </div>
-  </section>
 
-  <section class="side-card">
-    <h3>RECENT ACTIVITY</h3>
-    <div id="activityList" class="side-list">
-      <div class="side-empty">No recent activity.</div>
+    <div class="fp-section">
+      <h4>RECENT ACTIVITY</h4>
+      <div id="activityList" class="fp-list">
+        <div class="fp-empty">No recent activity.</div>
+      </div>
     </div>
-  </section>
+  </div>
 </div>
 
 <div class="view set" id="v-set">
@@ -2278,10 +2433,25 @@ async function startApp(){
 
 function go(v){
   view=v;
+  const isMobile = window.innerWidth <= 900;
+
+  if(v === 'friends' && !isMobile){
+    // Desktop: Friends = toggle floating panel
+    if(typeof toggleFriends === 'function') toggleFriends();
+    return;
+  }
+
+  // sch, set, and (on mobile) friends are regular views
   ['sch','set','friends'].forEach(k=>{
     const el=$('v-'+k);
     if(el)el.classList.toggle('on',k===v);
   });
+
+  // On desktop, always close the floating friends panel when navigating away
+  if(!isMobile && v !== 'friends' && typeof closeFriends === 'function'){
+    closeFriends();
+  }
+
   document.querySelectorAll('#tabbar .tab').forEach(b=>{
     b.setAttribute('aria-current',b.dataset.tab===v);
   });
@@ -2296,6 +2466,79 @@ window.addEventListener('resize', () => {
   }
   lastWidth = window.innerWidth;
 });
+/* ---- Friends floating panel ---- */
+const fpEl=$('v-friends');
+const fpClose=$('fpClose');
+const fpDrag=$('fpDrag');
+
+function openFriends(){
+  if(!fpEl)return;
+  fpEl.hidden=false;
+  fpEl.classList.remove('closing');
+  // Force re-play of the open animation
+  fpEl.style.animation='none';
+  void fpEl.offsetWidth;
+  fpEl.style.animation='';
+}
+function closeFriends(){
+  if(!fpEl || fpEl.hidden)return;
+  fpEl.classList.add('closing');
+  setTimeout(()=>{
+    fpEl.hidden=true;
+    fpEl.classList.remove('closing');
+  }, 260);
+}
+function toggleFriends(){
+  if(!fpEl)return;
+  if(fpEl.hidden) openFriends();
+  else closeFriends();
+}
+
+if(fpClose)fpClose.addEventListener('click',closeFriends);
+
+/* Drag the panel by its header */
+if(fpDrag && fpEl){
+  let dragX=0, dragY=0, startX=0, startY=0, dragging=false;
+
+  const down=(x,y)=>{
+    dragging=true;
+    startX=x;
+    startY=y;
+    const rect=fpEl.getBoundingClientRect();
+    dragX=rect.left;
+    dragY=rect.top;
+    fpEl.style.transition='none';
+    fpEl.style.transform='none';
+    fpEl.style.right='auto';
+    fpEl.style.left=dragX+'px';
+    fpEl.style.top=dragY+'px';
+  };
+  const move=(x,y)=>{
+    if(!dragging)return;
+    const nx=dragX+(x-startX);
+    const ny=dragY+(y-startY);
+    fpEl.style.left=nx+'px';
+    fpEl.style.top=ny+'px';
+  };
+  const up=()=>{
+    dragging=false;
+  };
+
+  fpDrag.addEventListener('mousedown',e=>{e.preventDefault();down(e.clientX,e.clientY)});
+  window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup',up);
+
+  fpDrag.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    down(t.clientX,t.clientY);
+  },{passive:true});
+  window.addEventListener('touchmove',e=>{
+    if(!dragging)return;
+    const t=e.touches[0];
+    move(t.clientX,t.clientY);
+  },{passive:true});
+  window.addEventListener('touchend',up);
+}
 /* ---- Tab bar + top icons ---- */
 document.querySelectorAll('#tabbar .tab').forEach(b=>{
   b.addEventListener('click',()=>go(b.dataset.tab));
@@ -2305,7 +2548,7 @@ if(homeBtnEl)homeBtnEl.addEventListener('click',()=>go('sch'));
 const setBtnEl=$('setBtn');
 if(setBtnEl)setBtnEl.addEventListener('click',()=>go('set'));
 const friendsBtnEl=$('friendsBtn');
-if(friendsBtnEl)friendsBtnEl.addEventListener('click',()=>go('friends'));
+if(friendsBtnEl)friendsBtnEl.addEventListener('click',toggleFriends);
 const bellBtnEl=$('bellBtn');
 if(bellBtnEl)bellBtnEl.addEventListener('click',()=>{
   // Placeholder — will become the notifications panel later
