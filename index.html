@@ -1109,6 +1109,31 @@ main{
   transition:all .2s;
   flex-shrink:0;
 }
+.fp-remove{
+  width:24px;
+  height:24px;
+  min-height:24px;
+  padding:0;
+  margin-left:4px;
+  border-radius:6px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--mut);
+  font-size:15px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:all .2s;
+  flex-shrink:0;
+  opacity:.6;
+}
+.fp-remove:hover{
+  border-color:#ef4444;
+  color:#ef4444;
+  background:color-mix(in srgb,#ef4444 12%,transparent);
+  opacity:1;
+}
 .fp-share:hover{
   border-color:var(--acc);
   color:var(--acc);
@@ -3271,16 +3296,57 @@ function renderFriendsList(friendIds, requests){
     share.title='Share a plan with '+name;
     share.onclick=()=>startShareFlow(id, name);
 
+    // Remove button
+    const remove=el('button','fp-remove','×');
+    remove.type='button';
+    remove.title='Remove friend';
+    remove.onclick=(e)=>{e.stopPropagation();confirmRemoveFriend(id, name);};
+
     if(uname){
       const u=el('span','fp-username', uname);
-      row.append(av, nm, u, share);
+      row.append(av, nm, u, share, remove);
     } else {
-      row.append(av, nm, share);
+      row.append(av, nm, share, remove);
     }
     list.append(row);
   });
 }
 
+async function confirmRemoveFriend(friendId, friendName){
+  const ok=await ask({
+    title:'Remove friend',
+    msg:'Remove '+friendName+' from your friends? This won\u2019t delete their account or plans.',
+    okText:'Remove',
+    cancelText:'Cancel'
+  });
+  if(!ok)return;
+  try{
+    // Delete the friendship row — DB stores them in alphabetical order
+    const [a,b]=[currentUser.id, friendId].sort();
+    const {error}=await sb
+      .from('friendships')
+      .delete()
+      .or(
+        `and(user_a.eq.${a},user_b.eq.${b}),and(user_a.eq.${b},user_b.eq.${a})`
+      );
+    if(error)throw error;
+
+    // Also clean up any shares between these two users
+    try{
+      await sb.from('plan_shares')
+        .delete()
+        .or(
+          `and(shared_by.eq.${currentUser.id},shared_with.eq.${friendId}),and(shared_by.eq.${friendId},shared_with.eq.${currentUser.id})`
+        );
+    }catch(e){console.warn('share cleanup failed',e);}
+
+    beep(440,.1,'sine',.05);
+    loadFriends();
+  }catch(err){
+    console.error(err);
+    await ask({title:'Error',msg:String(err.message||err),noCancel:true});
+  }
+}
 /* Placeholder — will be implemented in the next step */
 async function startShareFlow(friendId, friendName){
   await ask({
