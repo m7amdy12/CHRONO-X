@@ -4349,7 +4349,10 @@ function buildSharedPlanRow(item){
   const myLabel = 'You';
   const otherLabel = otherParty?.name || 'Friend';
 
-  const myBtn = mk(myLabel, myDone, ()=>toggleSharedDone(item, myDoneField, !myDone));
+  const myBtn = mk(myLabel, myDone, ()=>{
+    console.log('[checkbox clicked] my side, current:', myDone);
+    toggleSharedDone(item, myDoneField, !myDone);
+  });
   const otherBtn = mk(otherLabel, otherDone, ()=>{
     // Can only toggle your own side
     // (ignore taps on the other person's checkbox)
@@ -4383,6 +4386,7 @@ function buildSharedPlanRow(item){
 }
 
 async function toggleSharedDone(item, field, newValue){
+    console.log('[toggleSharedDone] called:', item.shareId, field, newValue);
   try{
     const {error} = await sb
       .from('plan_shares')
