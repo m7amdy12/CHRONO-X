@@ -1084,6 +1084,25 @@ main{
   color:var(--mut);
 }
 .fp-decline:hover{border-color:#ef4444;color:#ef4444}
+.fp-share{
+  margin-left:auto;
+  min-height:26px;
+  padding:0 10px;
+  font-size:11px;
+  letter-spacing:.08em;
+  border-radius:6px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--mut);
+  cursor:pointer;
+  transition:all .2s;
+  flex-shrink:0;
+}
+.fp-share:hover{
+  border-color:var(--acc);
+  color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 10%,transparent);
+}
 .fp-empty{
   font-size:13px;
   color:var(--mut);
@@ -2480,6 +2499,15 @@ $('nf').onsubmit=async e=>{
       return;
     }
     acct.dn=name;
+    // Also update the profiles table
+    try{
+      await sb.from('profiles').upsert({
+        id:currentUser.id,
+        email:currentUser.email,
+        display_name:name,
+        updated_at:new Date().toISOString()
+      },{onConflict:'id'});
+    }catch(pe){console.warn('profile update failed',pe);}
     $('nn').disabled=false;
     intro();
   }catch(err){
@@ -3052,6 +3080,8 @@ async function sendFriendRequest(){
 
 if(addFriendBtn)addFriendBtn.addEventListener('click',sendFriendRequest);
 /* ---- Friends: load list (basic — will expand) ---- */
+let friendProfilesCache = {};
+
 async function loadFriends(){
   if(!currentUser)return;
 
@@ -3075,7 +3105,28 @@ async function loadFriends(){
       .eq('status','pending');
     if(rErr)throw rErr;
 
-    // 3) Render the friend list
+    // 3) Load profiles for friends + requesters
+    const profileIds = [
+      ...friendIds,
+      ...(requests||[]).map(r=>r.from_user)
+    ].filter(Boolean);
+
+    if(profileIds.length){
+      const {data:profiles,error:pErr}=await sb
+        .from('profiles')
+        .select('id,email,display_name')
+        .in('id',profileIds);
+      if(pErr)throw pErr;
+      friendProfilesCache = {};
+      (profiles||[]).forEach(p=>{
+        friendProfilesCache[p.id] = {
+          name: p.display_name || (p.email ? p.email.split('@')[0] : 'User'),
+          email: p.email || ''
+        };
+      });
+    }
+
+    // 4) Render
     renderFriendsList(friendIds, requests||[]);
   }catch(err){
     console.error('loadFriends failed:',err);
@@ -3089,10 +3140,12 @@ function renderFriendsList(friendIds, requests){
 
   // Requests first
   (requests||[]).forEach(r=>{
+    const info = friendProfilesCache[r.from_user] || {};
+    const name = info.name || 'Someone';
     const row=el('div','fp-request');
-    row.append(
-      el('span','fp-req-txt','📩 New friend request')
-    );
+    const txt=el('span','fp-req-txt');
+    txt.textContent = '📩 ' + name + ' wants to be friends';
+    row.append(txt);
     const btns=el('div','fp-req-btns');
     const accept=el('button','fp-accept','Accept');
     const decline=el('button','fp-decline','Decline');
@@ -3111,17 +3164,35 @@ function renderFriendsList(friendIds, requests){
 
   if(!friendIds.length)return;
 
-  // Simple placeholder: display friend IDs until we add profiles
+  // Friend rows with real names
   friendIds.forEach(id=>{
+    const info = friendProfilesCache[id] || {};
+    const name = info.name || 'User';
+    const initial = name.charAt(0).toUpperCase();
+
     const row=el('div','fp-friend');
-    row.append(
-      el('span','fp-avatar', '👤'),
-      el('span','fp-name', 'Friend ' + id.slice(0,6))
-    );
+    const av=el('span','fp-avatar', initial);
+    const nm=el('span','fp-name', name);
+
+    // Add a small "Share plan" button
+    const share=el('button','fp-share','Share');
+    share.type='button';
+    share.title='Share a plan with '+name;
+    share.onclick=()=>startShareFlow(id, name);
+
+    row.append(av, nm, share);
     list.append(row);
   });
 }
 
+/* Placeholder — will be implemented in the next step */
+async function startShareFlow(friendId, friendName){
+  await ask({
+    title:'Share a plan',
+    msg:'Sharing with '+friendName+' will be available in the next update.',
+    noCancel:true
+  });
+}
 async function respondToRequest(requestId, action, fromUserId){
   try{
     const {error:uErr}=await sb
@@ -3700,6 +3771,12 @@ $('pfm').onsubmit=async e=>{
   const mnEl2=$('mn'); if(mnEl2) mnEl2.textContent=n;
   try{
     await sb.auth.updateUser({data:{display_name:n}});
+    await sb.from('profiles').upsert({
+      id:currentUser.id,
+      email:currentUser.email,
+      display_name:n,
+      updated_at:new Date().toISOString()
+    },{onConflict:'id'});
   }catch(err){console.error(err);}
 };
 
