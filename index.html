@@ -2790,6 +2790,7 @@ async function addTomorrowBox(){
 if(tbAdd)tbAdd.addEventListener('click',addTomorrowBox);
 if(tbClear)tbClear.addEventListener('click',()=>{
   if(tbInput){tbInput.value='';tbInput.focus();}
+  try{L.removeItem('pw:tb:draft');}catch(e){}
   try{beep(440,.05,'sine',.03);}catch(e){}
 });
 
@@ -3390,6 +3391,8 @@ $('out').onclick=async()=>{
   plans=[];
   selectedDay=null;
   if(notifTimer){clearInterval(notifTimer);notifTimer=null;}
+  try{L.removeItem('pw:tb:draft');}catch(e){}
+  const tb=$('tbInput'); if(tb) tb.value='';
   tab('in');
   show('auth');
 };
