@@ -1013,6 +1013,77 @@ main{
   flex-direction:column;
   gap:6px;
 }
+/* Friend rows */
+.fp-friend{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:color-mix(in srgb,var(--bg) 80%,var(--line));
+  transition:background .2s;
+}
+.fp-friend:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.fp-avatar{
+  display:inline-grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:color-mix(in srgb,var(--acc) 20%,transparent);
+  border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);
+  font-size:14px;
+  flex-shrink:0;
+}
+.fp-name{
+  font-size:14px;
+  font-weight:600;
+  color:var(--fg);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Friend request rows */
+.fp-request{
+  padding:10px 12px;
+  border:1px dashed color-mix(in srgb,var(--acc) 50%,transparent);
+  border-radius:10px;
+  background:color-mix(in srgb,var(--acc) 6%,transparent);
+  animation:up .3s both;
+}
+.fp-req-txt{
+  display:block;
+  font-size:13px;
+  color:var(--fg);
+  margin-bottom:8px;
+}
+.fp-req-btns{
+  display:flex;
+  gap:6px;
+}
+.fp-accept,
+.fp-decline{
+  flex:1;
+  min-height:32px;
+  padding:0 10px;
+  font-size:12px;
+  letter-spacing:.06em;
+  border-radius:8px;
+  cursor:pointer;
+}
+.fp-accept{
+  background:var(--acc);
+  color:var(--onacc);
+  border:1px solid var(--acc);
+}
+.fp-accept:hover{filter:brightness(1.1)}
+.fp-decline{
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--mut);
+}
+.fp-decline:hover{border-color:#ef4444;color:#ef4444}
 .fp-empty{
   font-size:13px;
   color:var(--mut);
@@ -2627,6 +2698,7 @@ async function startApp(){
   rSet();
   rSch();
   go(view);
+  if(typeof loadFriends==='function')loadFriends();
 }
 
 function go(v){
@@ -2700,7 +2772,6 @@ function toggleFriends(){
 }
 
 if(fpClose)fpClose.addEventListener('click',closeFriends);
-
 /* Drag the panel by its header */
 if(fpDrag && fpEl){
   let dragX=0, dragY=0, startX=0, startY=0, dragging=false;
@@ -2906,6 +2977,179 @@ if(tbInput){
     });
   }catch(e){}
 }
+/* ---- Friends: send request ---- */
+const addFriendBtn=$('addFriend');
+
+async function sendFriendRequest(){
+  if(!currentUser){
+    await ask({title:'Not signed in',msg:'Please sign in first.',noCancel:true});
+    return;
+  }
+  const email=await ask({
+    title:'Add a friend',
+    msg:'Enter your friend\u2019s email. They\u2019ll get a request when they sign in.',
+    input:true,
+    label:'Friend\u2019s email',
+    inputType:'email',
+    placeholder:'friend@example.com',
+    okText:'Send request'
+  });
+  if(!email)return;
+  const clean=String(email).trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)){
+    await ask({title:'Invalid email',msg:'Please enter a valid email address.',noCancel:true});
+    return;
+  }
+  if(clean === (currentUser.email||'').toLowerCase()){
+    await ask({title:'That\u2019s you',msg:'You can\u2019t add yourself as a friend.',noCancel:true});
+    return;
+  }
+
+  try{
+    // Check if already friends
+    const {data:existingFriends}=await sb
+      .from('friendships')
+      .select('id')
+      .or(`user_a.eq.${currentUser.id},user_b.eq.${currentUser.id}`);
+    // (friend check is visual only; DB unique constraint prevents dupes)
+
+    // Check for existing pending request to this email
+    const {data:existingReq}=await sb
+      .from('friend_requests')
+      .select('id,status')
+      .eq('from_user',currentUser.id)
+      .eq('to_email',clean)
+      .eq('status','pending')
+      .maybeSingle();
+
+    if(existingReq){
+      await ask({title:'Already sent',msg:'You already have a pending request to that email.',noCancel:true});
+      return;
+    }
+
+    const {error}=await sb
+      .from('friend_requests')
+      .insert({from_user:currentUser.id, to_email:clean});
+
+    if(error){
+      await ask({title:'Error',msg:error.message,noCancel:true});
+      return;
+    }
+
+    beep(880,.08,'sine',.05);
+    setTimeout(()=>beep(1320,.12,'sine',.05),100);
+    await ask({
+      title:'✅ Request sent',
+      msg:'We\u2019ll let you know when '+clean+' accepts.',
+      noCancel:true
+    });
+    loadFriends();
+  }catch(err){
+    console.error(err);
+    await ask({title:'Error',msg:String(err.message||err),noCancel:true});
+  }
+}
+
+if(addFriendBtn)addFriendBtn.addEventListener('click',sendFriendRequest);
+/* ---- Friends: load list (basic — will expand) ---- */
+async function loadFriends(){
+  if(!currentUser)return;
+
+  try{
+    // 1) Load friendships → get friend user IDs
+    const {data:friendships,error:fErr}=await sb
+      .from('friendships')
+      .select('user_a,user_b')
+      .or(`user_a.eq.${currentUser.id},user_b.eq.${currentUser.id}`);
+    if(fErr)throw fErr;
+
+    const friendIds=(friendships||[]).map(f =>
+      f.user_a === currentUser.id ? f.user_b : f.user_a
+    );
+
+    // 2) Load incoming pending requests
+    const {data:requests,error:rErr}=await sb
+      .from('friend_requests')
+      .select('id,from_user,to_email,status,created_at')
+      .eq('to_email',(currentUser.email||'').toLowerCase())
+      .eq('status','pending');
+    if(rErr)throw rErr;
+
+    // 3) Render the friend list
+    renderFriendsList(friendIds, requests||[]);
+  }catch(err){
+    console.error('loadFriends failed:',err);
+  }
+}
+
+function renderFriendsList(friendIds, requests){
+  const list=$('friendsList');
+  if(!list)return;
+  list.textContent='';
+
+  // Requests first
+  (requests||[]).forEach(r=>{
+    const row=el('div','fp-request');
+    row.append(
+      el('span','fp-req-txt','📩 New friend request')
+    );
+    const btns=el('div','fp-req-btns');
+    const accept=el('button','fp-accept','Accept');
+    const decline=el('button','fp-decline','Decline');
+    accept.type=decline.type='button';
+    accept.onclick=()=>respondToRequest(r.id,'accepted',r.from_user);
+    decline.onclick=()=>respondToRequest(r.id,'declined');
+    btns.append(accept,decline);
+    row.append(btns);
+    list.append(row);
+  });
+
+  if(!friendIds.length && !(requests||[]).length){
+    list.append(el('div','fp-empty','No friends yet.'));
+    return;
+  }
+
+  if(!friendIds.length)return;
+
+  // Simple placeholder: display friend IDs until we add profiles
+  friendIds.forEach(id=>{
+    const row=el('div','fp-friend');
+    row.append(
+      el('span','fp-avatar', '👤'),
+      el('span','fp-name', 'Friend ' + id.slice(0,6))
+    );
+    list.append(row);
+  });
+}
+
+async function respondToRequest(requestId, action, fromUserId){
+  try{
+    const {error:uErr}=await sb
+      .from('friend_requests')
+      .update({status:action})
+      .eq('id',requestId);
+    if(uErr)throw uErr;
+
+    if(action==='accepted' && fromUserId){
+      // Insert friendship (sorted IDs)
+      const [a,b]=[currentUser.id, fromUserId].sort();
+      const {error:fErr}=await sb
+        .from('friendships')
+        .insert({user_a:a, user_b:b});
+      if(fErr && fErr.code!=='23505'){ // ignore duplicate
+        throw fErr;
+      }
+      beep(880,.08,'sine',.05);
+      setTimeout(()=>beep(1320,.12,'sine',.05),100);
+    } else {
+      beep(440,.08,'sine',.04);
+    }
+    loadFriends();
+  }catch(err){
+    console.error(err);
+    await ask({title:'Error',msg:String(err.message||err),noCancel:true});
+  }
+}
 /* ---- Tab bar + top icons ---- */
 document.querySelectorAll('#tabbar .tab').forEach(b=>{
   b.addEventListener('click',()=>go(b.dataset.tab));
@@ -2928,6 +3172,7 @@ if(friendsBtnEl){
       fp.style.animation='none';
       void fp.offsetWidth;
       fp.style.animation='';
+      if(typeof loadFriends==='function')loadFriends();
     } else {
       fp.classList.add('closing');
       setTimeout(()=>{
