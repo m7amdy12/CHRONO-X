@@ -469,6 +469,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 .icon-btn:active{transform:scale(.95)}
 .icon-btn svg{display:block}
 
+.top-left,
 .top-actions{display:flex;gap:8px;align-items:center}
 
 .dot{
@@ -707,6 +708,13 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   text-align:center;
   margin-bottom:36px;
   padding-top:8px;
+  width:100%;
+}
+@media(max-width:900px){
+  #clockWrap{
+    margin-bottom:20px;
+    padding-top:0;
+  }
 }
 .clock{
   font-family:Orbitron,sans-serif;
@@ -740,21 +748,16 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 .me b{font-size:16px;letter-spacing:.05em}
 .me small{color:var(--mut);font-size:13px}
 
-/* ============ MAIN LAYOUT (grid) ============ */
+/* ============ MAIN LAYOUT (single centered column) ============ */
 #app.on{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 340px;
-  grid-template-areas:"main side";
-  gap:24px;
-  max-width:1280px;
+  display:block;
+  max-width:860px;
   margin:0 auto;
-  padding:96px clamp(16px,3vw,40px) 40px;
-  align-items:start;
+  padding:96px clamp(16px,4vw,40px) 40px;
+  position:relative;
 }
 
-/* Left column: the schedule */
 main{
-  grid-area:main;
   min-width:0;
   position:relative;
   z-index:1;
@@ -763,22 +766,28 @@ main{
   margin:0;
 }
 
-/* Right column: side panel (friends on desktop, settings if user taps gear) */
-#v-friends,
-#v-set{
-  grid-area:side;
-  position:sticky;
-  top:96px;
-  max-height:calc(100vh - 120px);
-  overflow-y:auto;
-  padding-right:4px;
+/* Friends panel: fixed to the right side on desktop only */
+#v-friends{
+  display:none;
 }
-#v-friends{display:block}
-#v-set{display:none}
+@media(min-width:1200px){
+  #v-friends.on{
+    display:block;
+    position:fixed;
+    top:96px;
+    right:20px;
+    width:320px;
+    max-height:calc(100vh - 120px);
+    overflow-y:auto;
+    z-index:2;
+  }
+}
 
-/* When settings is active on desktop, swap what shows in the side column */
-#app:has(#v-set.on) #v-friends{display:none}
-#app:has(#v-set.on) #v-set{display:block}
+/* Settings: full overlay when open */
+#v-set{
+  display:none;
+}
+#v-set.on{display:block}
 
 .side-card{
   border:1px solid var(--line);
@@ -1620,11 +1629,16 @@ Continue with Google
 <!-- REDESIGNED MAIN APP HOMEPAGE -->
 <div id="app">
 
-<!-- New top bar: settings (left) · logo (center) · bell + friends (right) -->
+<!-- New top bar: home + settings (left) · logo (center) · bell + friends (right) -->
 <header id="topbar">
-  <button id="setBtn" class="icon-btn" type="button" aria-label="Settings">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
+  <div class="top-left">
+    <button id="homeBtn" class="icon-btn" type="button" aria-label="Home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
+    <button id="setBtn" class="icon-btn" type="button" aria-label="Settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
 
   <div class="brand" id="brand" aria-label="CHRONO-X" tabindex="0" role="button">
     <span class="logo-frame left" aria-hidden="true"></span>
@@ -2264,34 +2278,12 @@ async function startApp(){
 
 function go(v){
   view=v;
-  const isDesktop = window.innerWidth > 900;
-
-  if(isDesktop){
-    // Desktop: schedule stays visible on the left, side panel swaps between friends/set
-    const sch = $('v-sch');
-    if(sch) sch.classList.add('on');
-
-    // Hide or show side views based on tab
-    const friends = $('v-friends');
-    const settings = $('v-set');
-    if(friends) friends.classList.toggle('on', v === 'friends');
-    if(settings) settings.classList.toggle('on', v === 'set');
-
-    // If user clicked Home tab on desktop, hide both side views (schedule only)
-    if(v === 'sch'){
-      if(friends) friends.classList.remove('on');
-      if(settings) settings.classList.remove('on');
-    }
-  } else {
-    // Mobile: single view at a time
-    ['sch','set','friends'].forEach(k=>{
-      const el = $('v-'+k);
-      if(el) el.classList.toggle('on', k === v);
-    });
-  }
-
+  ['sch','set','friends'].forEach(k=>{
+    const el=$('v-'+k);
+    if(el)el.classList.toggle('on',k===v);
+  });
   document.querySelectorAll('#tabbar .tab').forEach(b=>{
-    b.setAttribute('aria-current', b.dataset.tab === v);
+    b.setAttribute('aria-current',b.dataset.tab===v);
   });
 }
 /* ---- Re-run go() on resize so desktop/mobile switches cleanly ---- */
@@ -2308,6 +2300,8 @@ window.addEventListener('resize', () => {
 document.querySelectorAll('#tabbar .tab').forEach(b=>{
   b.addEventListener('click',()=>go(b.dataset.tab));
 });
+const homeBtnEl=$('homeBtn');
+if(homeBtnEl)homeBtnEl.addEventListener('click',()=>go('sch'));
 const setBtnEl=$('setBtn');
 if(setBtnEl)setBtnEl.addEventListener('click',()=>go('set'));
 const friendsBtnEl=$('friendsBtn');
