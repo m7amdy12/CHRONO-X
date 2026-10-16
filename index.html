@@ -2659,6 +2659,89 @@ function tomorrowIso(){
   return iso(t);
 }
 
+/* ---- Parse "gym at 3pm" → {title:"Gym", time:"15:00"} ---- */
+function parseTimeFromLine(raw){
+  let text = raw.trim();
+  let time = null;
+  let endTime = null;
+
+  // Normalize
+  const norm = text.toLowerCase();
+
+  // 1) "at 3pm" / "3pm" / "3 pm" / "3:30pm" / "15:30"
+  // Ranges first: "3pm-4pm" or "3:30-4:30pm"
+  const rangeRe = /(\d{1,2}(?::\d{2})?)\s*(am|pm)?\s*(?:-|–|to)\s*(\d{1,2}(?::\d{2})?)\s*(am|pm)?/i;
+  const rangeMatch = text.match(rangeRe);
+  if(rangeMatch){
+    const t1 = to24h(rangeMatch[1], rangeMatch[2] || rangeMatch[4]);
+    const t2 = to24h(rangeMatch[3], rangeMatch[4] || rangeMatch[2]);
+    if(t1 && t2){
+      time = t1; endTime = t2;
+      text = text.replace(rangeMatch[0], '').trim();
+      text = text.replace(/\b(at|from|by)\b\s*$/i,'').trim();
+      return { title: cleanTitle(text), time, endTime };
+    }
+  }
+
+  // 2) Single time: "3pm", "3:30 pm", "15:30", "3"
+  const singleRe = /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?\b/i;
+  const m = text.match(singleRe);
+
+  // 3) "noon", "midnight", "morning", "afternoon", "evening"
+  const wordTime =
+    /\b(noon)\b/i.test(norm) ? '12:00' :
+    /\b(midnight)\b/i.test(norm) ? '00:00' :
+    /\b(morning)\b/i.test(norm) ? '09:00' :
+    /\b(afternoon)\b/i.test(norm) ? '14:00' :
+    /\b(evening|tonight)\b/i.test(norm) ? '19:00' : null;
+
+  if(wordTime){
+    time = wordTime;
+    text = text.replace(/\b(noon|midnight|morning|afternoon|evening|tonight)\b/i,'').trim();
+    text = text.replace(/\b(at|by|in the)\b\s*$/i,'').trim();
+    return { title: cleanTitle(text), time, endTime:null };
+  }
+
+  if(m){
+    const hh = m[1];
+    const mm = m[2] || '00';
+    const mer = m[3];
+    const parsed = to24h(hh + ':' + mm, mer);
+    // Only accept if it looks time-ish: has am/pm, has minutes, or is 1-23
+    const looksTime = !!mer || !!m[2] || (parseInt(hh,10) <= 23);
+    if(parsed && looksTime){
+      time = parsed;
+      text = text.replace(m[0], '').trim();
+      text = text.replace(/\b(at|by|from)\b\s*$/i,'').trim();
+    }
+  }
+
+  return { title: cleanTitle(text), time, endTime };
+}
+
+function to24h(hhmm, mer){
+  if(!hhmm) return null;
+  const parts = hhmm.split(':');
+  let h = parseInt(parts[0],10);
+  const m = parts[1] ? parseInt(parts[1],10) : 0;
+  if(isNaN(h) || isNaN(m)) return null;
+  if(m<0 || m>59) return null;
+  const merLower = (mer||'').toLowerCase().replace(/\./g,'');
+  if(merLower === 'pm' && h<12) h += 12;
+  if(merLower === 'am' && h===12) h = 0;
+  if(!merLower && h>23) return null;
+  if(h>23) return null;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+function cleanTitle(t){
+  return t
+    .replace(/[,\-–]+$/,'')
+    .replace(/\s{2,}/g,' ')
+    .trim()
+    .slice(0,80);
+}
+
 async function addTomorrowBox(){
   if(!tbInput)return;
   const raw=tbInput.value;
@@ -2668,13 +2751,18 @@ async function addTomorrowBox(){
     return;
   }
   const d=tomorrowIso();
+  let parsedCount = 0;
   lines.forEach(line=>{
+    const parsed = parseTimeFromLine(line);
+    const finalTitle = parsed.title || line.slice(0,80);
+    const finalTime = parsed.time || '09:00';
+    if(parsed.time) parsedCount++;
     plans.push({
       id:crypto.randomUUID(),
-      t:line.slice(0,80),
+      t:finalTitle,
       d,
-      s:'09:00',
-      e:'',
+      s:finalTime,
+      e:parsed.endTime || '',
       c:'Plan',
       n:'',
       r:'',
@@ -2683,12 +2771,17 @@ async function addTomorrowBox(){
   });
   await savePlans();
   tbInput.value='';
-  // Show a quick confirmation
+  try{L.removeItem('pw:tb:draft');}catch(e){}
+
+  // Confirmation sounds
   try{
     beep(660,.07,'sine',.04);
     setTimeout(()=>beep(990,.1,'sine',.05),90);
+    if(parsedCount>0){
+      setTimeout(()=>beep(1320,.09,'sine',.05),200);
+    }
   }catch(e){}
-  // Jump to tomorrow so the user sees them
+
   week=mon(new Date(d+'T00:00'));
   selectedDay=d;
   rSch();
