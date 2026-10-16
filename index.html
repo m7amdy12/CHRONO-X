@@ -1751,6 +1751,192 @@ main{
   color:var(--acc);
 }
 
+/* ============ SHARED PLANS ============ */
+.shared-divider{
+  padding:14px 18px 6px;
+  font-family:Orbitron,sans-serif;
+  font-size:10px;
+  letter-spacing:.32em;
+  text-transform:uppercase;
+  color:var(--mut);
+  opacity:.7;
+  text-align:center;
+  position:relative;
+}
+.shared-divider::before,
+.shared-divider::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  width:30%;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--line),transparent);
+}
+.shared-divider::before{left:4%}
+.shared-divider::after{right:4%}
+
+.shared-plan{
+  margin:10px 14px 14px;
+  padding:14px 16px;
+  border:2px dashed color-mix(in srgb,var(--acc) 55%,var(--line));
+  border-radius:var(--r-lg);
+  background:linear-gradient(135deg,
+    color-mix(in srgb,var(--acc) 6%,transparent) 0%,
+    color-mix(in srgb,var(--acc) 2%,transparent) 100%);
+  position:relative;
+  animation:up .35s both;
+  transition:border-color .25s, box-shadow .25s;
+}
+.shared-plan:hover{
+  border-color:var(--acc);
+  box-shadow:0 0 24px color-mix(in srgb,var(--acc) 15%,transparent);
+}
+
+/* Top bar with time + SHARED tag */
+.sp-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+.sp-time{
+  font:700 12px Orbitron,sans-serif;
+  color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+  padding:4px 10px;
+  border-radius:var(--r-sm);
+  letter-spacing:.02em;
+}
+.sp-tag{
+  font-family:Orbitron,sans-serif;
+  font-size:9px;
+  letter-spacing:.25em;
+  color:var(--acc);
+  font-weight:900;
+  text-shadow:0 0 10px color-mix(in srgb,var(--acc) 60%,transparent);
+  padding:3px 8px;
+  border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);
+  border-radius:99px;
+  animation:sharedTagPulse 2s ease-in-out infinite;
+}
+@keyframes sharedTagPulse{
+  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 40%,transparent)}
+  50%{box-shadow:0 0 12px 0 color-mix(in srgb,var(--acc) 60%,transparent)}
+}
+
+/* Title */
+.sp-title{
+  font-size:17px;
+  font-weight:700;
+  color:var(--fg);
+  letter-spacing:.01em;
+  margin-bottom:2px;
+  word-break:break-word;
+}
+.sp-with{
+  font-size:12px;
+  color:var(--mut);
+  letter-spacing:.05em;
+  margin-bottom:12px;
+  font-style:italic;
+}
+
+/* Two big checkboxes */
+.sp-checks{
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.sp-check{
+  flex:1 1 0;
+  min-width:100px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border:1.5px solid color-mix(in srgb,var(--acc) 40%,var(--line));
+  border-radius:var(--r);
+  background:color-mix(in srgb,var(--bg) 90%,var(--line));
+  color:var(--fg);
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:all .25s cubic-bezier(.4,1.4,.5,1);
+  text-align:left;
+  min-height:auto;
+}
+.sp-check:hover{
+  border-color:var(--acc);
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px color-mix(in srgb,var(--acc) 20%,transparent);
+}
+.sp-check.on{
+  background:color-mix(in srgb,var(--acc) 18%,transparent);
+  border-color:var(--acc);
+  color:var(--acc);
+  box-shadow:0 0 20px color-mix(in srgb,var(--acc) 30%,transparent);
+}
+.sp-box{
+  width:22px;
+  height:22px;
+  min-width:22px;
+  border-radius:50%;
+  border:2px solid color-mix(in srgb,var(--acc) 55%,var(--line));
+  background:transparent;
+  position:relative;
+  flex-shrink:0;
+  transition:all .25s;
+}
+.sp-check.on .sp-box{
+  background:var(--acc);
+  border-color:var(--acc);
+  box-shadow:0 0 12px color-mix(in srgb,var(--acc) 60%,transparent);
+}
+.sp-box::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:11px;
+  height:6px;
+  border-left:2.5px solid var(--onacc);
+  border-bottom:2.5px solid var(--onacc);
+  transform:translate(-50%,-60%) rotate(-45deg) scale(0);
+  transition:transform .25s cubic-bezier(.4,1.6,.5,1);
+}
+.sp-check.on .sp-box::after{
+  transform:translate(-50%,-60%) rotate(-45deg) scale(1);
+}
+.sp-label{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Comment row */
+.sp-comments{
+  display:flex;
+  justify-content:flex-end;
+}
+.sp-comment-btn{
+  min-height:28px;
+  padding:0 12px;
+  font-size:11px;
+  letter-spacing:.06em;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--mut);
+  cursor:pointer;
+  transition:all .2s;
+}
+.sp-comment-btn:hover{
+  border-color:var(--acc);
+  color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 10%,transparent);
+}
 /* Empty day state */
 .day .empty{
   padding:18px;
@@ -2858,6 +3044,7 @@ async function startApp(){
   week=mon(new Date());
   selectedDay=null;
   await loadPlans();
+  if(typeof loadShared==='function') await loadShared();
   startReminderWatch();
   startClock();
   updateRings();
@@ -2904,6 +3091,12 @@ function go(v){
     b.setAttribute('aria-current',b.dataset.tab===v);
   });
 }
+/* ---- Refresh shared plans when window regains focus ---- */
+window.addEventListener('focus', ()=>{
+  if(currentUser && typeof loadShared==='function'){
+    loadShared().then(()=>{ if(typeof rSch==='function') rSch(); });
+  }
+});
 /* ---- Re-run go() on resize so desktop/mobile switches cleanly ---- */
 let lastWidth = window.innerWidth;
 window.addEventListener('resize', () => {
@@ -3539,7 +3732,34 @@ function sharePlanPicker(planList, friendName){
 
 let sharedWithMe = [];      // plans shared WITH me
 let sharedByMe = [];        // plans I shared
+let sharedComments = {};    // cache: { planId: commentCount }
 
+async function loadSharedCommentCounts(){
+  const allIds = [
+    ...sharedWithMe.map(s=>s.plan.id),
+    ...sharedByMe.map(s=>s.plan.id)
+  ];
+  const unique = [...new Set(allIds)];
+  if(!unique.length){
+    sharedComments = {};
+    return;
+  }
+  try{
+    const {data, error} = await sb
+      .from('plan_comments')
+      .select('plan_id')
+      .in('plan_id', unique);
+    if(error)throw error;
+    const counts = {};
+    (data||[]).forEach(c=>{
+      counts[c.plan_id] = (counts[c.plan_id]||0) + 1;
+    });
+    sharedComments = counts;
+  }catch(err){
+    console.warn('comment count load failed', err);
+    sharedComments = {};
+  }
+}
 async function loadShared(){
   const list=$('sharedList');
   const byList=$('sharedByList');
@@ -3626,6 +3846,7 @@ async function loadShared(){
 
     renderSharedList();
     renderSharedByList();
+    await loadSharedCommentCounts();
   }catch(err){
     console.error('loadShared failed:',err);
   }
@@ -3932,6 +4153,20 @@ async function savePlans(){
 }
 
 
+function getSharedPlansForDay(dayIso){
+  const out = [];
+  sharedWithMe.forEach(s=>{
+    if(s.plan && s.plan.d === dayIso){
+      out.push({ ...s, direction: 'in' });
+    }
+  });
+  sharedByMe.forEach(s=>{
+    if(s.plan && s.plan.d === dayIso){
+      out.push({ ...s, direction: 'out' });
+    }
+  });
+  return out.sort((a,b)=>(a.plan.s||'99').localeCompare(b.plan.s||'99'));
+}
 function rSch(){
   const box=$('week');
   box.textContent='';
@@ -4054,6 +4289,15 @@ function rSch(){
     r.append(t,body,a);
     s.append(r);
   });
+  // --- Shared plans for this day ---
+  const sharedForDay = getSharedPlansForDay(selectedDay);
+  if(sharedForDay.length){
+    s.append(el('div','shared-divider','SHARED PLANS'));
+    sharedForDay.forEach(item=>{
+      s.append(buildSharedPlanRow(item));
+    });
+  }
+
   box.append(s);
 
   const pct=tot?Math.round(dn/tot*100):0;
@@ -4065,6 +4309,101 @@ function rSch(){
 
 $('np').onclick=()=>openPlan(null,selectedDay||iso(new Date()));
 
+function buildSharedPlanRow(item){
+  const p = item.plan;
+  const direction = item.direction;   // 'in' = shared with me, 'out' = I shared
+  const otherParty = direction === 'in' ? item.from : item.to;
+
+  const isMine = direction === 'out';   // am I the sharer?
+  const myDoneField = isMine ? 'done_shared_by' : 'done_shared_with';
+  const otherDoneField = isMine ? 'done_shared_with' : 'done_shared_by';
+
+  const myDone = !!item[myDoneField];
+  const otherDone = !!item[otherDoneField];
+
+  const row = el('div','shared-plan');
+
+  /* Top bar: time + SHARED tag */
+  const top = el('div','sp-top');
+  const time = el('span','sp-time',(tf(p.s)+(p.e?' – '+tf(p.e):''))||'All day');
+  const tag = el('span','sp-tag','👥 SHARED');
+  top.append(time, tag);
+
+  /* Title + "with X" */
+  const title = el('div','sp-title', p.t);
+  const withLine = el('div','sp-with', (direction==='in'?'From ':'With ') + (otherParty?.name||'Friend'));
+
+  /* Two checkboxes */
+  const checks = el('div','sp-checks');
+
+  const mk = (label, done, onToggle)=>{
+    const btn = el('button','sp-check'+(done?' on':''));
+    btn.type='button';
+    const box = el('span','sp-box');
+    const lbl = el('span','sp-label', label);
+    btn.append(box, lbl);
+    btn.onclick = (e)=>{ e.stopPropagation(); onToggle(); };
+    return btn;
+  };
+
+  const myLabel = 'You';
+  const otherLabel = otherParty?.name || 'Friend';
+
+  const myBtn = mk(myLabel, myDone, ()=>toggleSharedDone(item, myDoneField, !myDone));
+  const otherBtn = mk(otherLabel, otherDone, ()=>{
+    // Can only toggle your own side
+    // (ignore taps on the other person's checkbox)
+    beep(220,.06,'square',.04);
+  });
+
+  /* If direction is 'out', show "You" first; if 'in', show friend first */
+  if(isMine){
+    checks.append(myBtn, otherBtn);
+  } else {
+    checks.append(otherBtn, myBtn);
+  }
+  // Disable other person's checkbox visually
+  otherBtn.style.opacity = '.7';
+  otherBtn.style.cursor = 'default';
+
+  /* Comments */
+  const commentRow = el('div','sp-comments');
+  const count = sharedComments[p.id] || 0;
+  const cbtn = el('button','sp-comment-btn','💬 '+(count?count+' comment'+(count>1?'s':''):'Comment'));
+  cbtn.type='button';
+  cbtn.onclick=(e)=>{
+    e.stopPropagation();
+    // figure out which item to open (this is the correct one)
+    openComments(item);
+  };
+  commentRow.append(cbtn);
+
+  row.append(top, title, withLine, checks, commentRow);
+  return row;
+}
+
+async function toggleSharedDone(item, field, newValue){
+  try{
+    const {error} = await sb
+      .from('plan_shares')
+      .update({ [field]: newValue })
+      .eq('id', item.shareId);
+    if(error)throw error;
+
+    // Update local copy
+    item[field] = newValue;
+
+    beep(newValue?880:440, .08, 'sine', .05);
+    if(newValue){
+      setTimeout(()=>beep(1320,.1,'sine',.05),100);
+    }
+
+    rSch();
+  }catch(err){
+    console.error('toggle shared done failed:', err);
+    await ask({title:'Error', msg:String(err.message||err), noCancel:true});
+  }
+}
 function openPlan(p,k){
   ed=p;
   $('pt').value=p?p.t:'';
