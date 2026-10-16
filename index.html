@@ -3606,17 +3606,23 @@ async function loadShared(){
     }
 
     // 4) Shape
-    sharedWithMe=(incoming||[]).map(s=>({
-      shareId:s.id,
-      plan:planMap[s.plan_id],
-      from:profileMap[s.shared_by]||{name:'Someone'}
-    })).filter(x=>x.plan);
+    sharedWithMe=(incoming||[]).map(s=>{
+      const prof=profileMap[s.shared_by];
+      return {
+        shareId:s.id,
+        plan:planMap[s.plan_id],
+        from:(prof && prof.name) ? prof : {name:'Someone',username:''}
+      };
+    }).filter(x=>x.plan);
 
-    sharedByMe=(outgoing||[]).map(s=>({
-      shareId:s.id,
-      plan:planMap[s.plan_id],
-      to:profileMap[s.shared_with]||{name:'Someone'}
-    })).filter(x=>x.plan);
+    sharedByMe=(outgoing||[]).map(s=>{
+      const prof=profileMap[s.shared_with];
+      return {
+        shareId:s.id,
+        plan:planMap[s.plan_id],
+        to:(prof && prof.name) ? prof : {name:'Someone',username:''}
+      };
+    }).filter(x=>x.plan);
 
     renderSharedList();
     renderSharedByList();
@@ -3638,7 +3644,7 @@ function renderSharedList(){
     const row=el('div','fp-shared');
     const head=el('div','fp-shared-head');
     head.append(
-      el('span','fp-shared-from','From '+item.from.name),
+      el('span','fp-shared-from','From '+((item.from&&item.from.name)||'Someone')),
       el('span','fp-shared-when', p.d)
     );
     const body=el('div','fp-shared-body');
@@ -3668,7 +3674,7 @@ function renderSharedByList(){
     const row=el('div','fp-shared');
     const head=el('div','fp-shared-head');
     head.append(
-      el('span','fp-shared-from','To '+item.to.name),
+      el('span','fp-shared-from','To '+((item.to&&item.to.name)||'Someone')),
       el('span','fp-shared-when', p.d)
     );
     const body=el('div','fp-shared-body');
