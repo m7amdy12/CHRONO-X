@@ -2264,14 +2264,46 @@ async function startApp(){
 
 function go(v){
   view=v;
-  ['sch','set','friends'].forEach(k=>{
-    const el=$('v-'+k);
-    if(el)el.classList.toggle('on',k===v);
-  });
+  const isDesktop = window.innerWidth > 900;
+
+  if(isDesktop){
+    // Desktop: schedule stays visible on the left, side panel swaps between friends/set
+    const sch = $('v-sch');
+    if(sch) sch.classList.add('on');
+
+    // Hide or show side views based on tab
+    const friends = $('v-friends');
+    const settings = $('v-set');
+    if(friends) friends.classList.toggle('on', v === 'friends');
+    if(settings) settings.classList.toggle('on', v === 'set');
+
+    // If user clicked Home tab on desktop, hide both side views (schedule only)
+    if(v === 'sch'){
+      if(friends) friends.classList.remove('on');
+      if(settings) settings.classList.remove('on');
+    }
+  } else {
+    // Mobile: single view at a time
+    ['sch','set','friends'].forEach(k=>{
+      const el = $('v-'+k);
+      if(el) el.classList.toggle('on', k === v);
+    });
+  }
+
   document.querySelectorAll('#tabbar .tab').forEach(b=>{
-    b.setAttribute('aria-current',b.dataset.tab===v);
+    b.setAttribute('aria-current', b.dataset.tab === v);
   });
 }
+/* ---- Re-run go() on resize so desktop/mobile switches cleanly ---- */
+let lastWidth = window.innerWidth;
+window.addEventListener('resize', () => {
+  const nowDesktop = window.innerWidth > 900;
+  const wasDesktop = lastWidth > 900;
+  if(nowDesktop !== wasDesktop){
+    go(view || 'sch');
+  }
+  lastWidth = window.innerWidth;
+});
 /* ---- Tab bar + top icons ---- */
 document.querySelectorAll('#tabbar .tab').forEach(b=>{
   b.addEventListener('click',()=>go(b.dataset.tab));
