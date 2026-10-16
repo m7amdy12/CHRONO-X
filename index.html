@@ -523,6 +523,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   left:50%;
   top:50%;
   transform:translate(-50%,-50%);
+  animation:brandIn 1s cubic-bezier(.2,1.4,.4,1) both;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -600,9 +601,8 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   -webkit-background-clip:text;
   background-clip:text;
   -webkit-text-fill-color:transparent;
-  animation:
-    logoShine 4.5s ease-in-out infinite,
-    logoIn 1s cubic-bezier(.2,1.4,.4,1) both;
+  animation: logoShine 2.4s ease-in-out infinite;
+  will-change: background-position, filter, transform;
   text-shadow:
     0 1px 0 color-mix(in srgb,var(--acc) 45%,#000),
     0 2px 0 color-mix(in srgb,var(--acc) 32%,#000),
@@ -640,9 +640,22 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   50%{background-position:0% 0}
   100%{background-position:100% 0}
 }
+
+@keyframes brandIn{
+  0%{opacity:0;filter:blur(10px);transform:translate(-50%,-50%) scale(.85)}
+  100%{opacity:1;filter:blur(0);transform:translate(-50%,-50%) scale(1)}
+}
 @keyframes logoIn{
   from{opacity:0;letter-spacing:.7em;filter:blur(12px)}
   to{opacity:1;letter-spacing:.22em;filter:blur(0)}
+}
+/* Ambient idle motion */
+.brand:not(:hover){
+  animation:brandIn 1s cubic-bezier(.2,1.4,.4,1) both, brandIdle 4s ease-in-out 1s infinite;
+}
+@keyframes brandIdle{
+  0%,100%{transform:translate(-50%,-50%) translateY(0)}
+  50%{transform:translate(-50%,-50%) translateY(-2px)}
 }
 @keyframes framePulse{
   0%,100%{
@@ -657,6 +670,25 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 @keyframes frameRing{
   0%,100%{opacity:.35;transform:scale(1)}
   50%{opacity:.75;transform:scale(1.15)}
+}
+/* Glitch on click */
+.logo-glow.glitching{
+  animation:
+    logoShine 2.4s ease-in-out infinite,
+    logoGlitch .45s steps(2) 1;
+}
+
+/* Rectangles push apart on click */
+.logo-frame.push{
+  animation:framePush .5s cubic-bezier(.34,1.4,.5,1);
+}
+.logo-frame.left.push{--push:-14px}
+.logo-frame.right.push{--push:14px}
+
+@keyframes framePush{
+  0%{transform:translateX(0) scale(1)}
+  35%{transform:translateX(var(--push,0)) scale(1.2)}
+  100%{transform:translateX(0) scale(1)}
 }
 @keyframes logoGlitch{
   0%{transform:translate(0,0)}
@@ -2068,12 +2100,41 @@ function go(v){
 }
 /* ---- Logo interactions ---- */
 const brandEl=$('brand');
-if(brandEl){
-  brandEl.addEventListener('click',()=>{
-    try{ beep(880,.08,'sine',.05); setTimeout(()=>beep(1320,.12,'sine',.05),90); }catch(e){}
-  });
+const glowEl=document.querySelector('.logo-glow');
+const leftFrame=document.querySelector('.logo-frame.left');
+const rightFrame=document.querySelector('.logo-frame.right');
+
+if(brandEl && glowEl){
+  const pulse=()=>{
+    // Restart the glitch animation cleanly
+    glowEl.style.animation='none';
+    void glowEl.offsetWidth;
+    glowEl.style.animation='';
+
+    // Add a temp class for the shake
+    glowEl.classList.remove('glitching');
+    void glowEl.offsetWidth;
+    glowEl.classList.add('glitching');
+
+    // Pulse both rectangles outward
+    [leftFrame,rightFrame].forEach(f=>{
+      if(!f)return;
+      f.classList.remove('push');
+      void f.offsetWidth;
+      f.classList.add('push');
+      setTimeout(()=>f.classList.remove('push'),600);
+    });
+
+    // Audio
+    try{
+      beep(880,.07,'sine',.045);
+      setTimeout(()=>beep(1320,.1,'sine',.045),85);
+    }catch(e){}
+  };
+  brandEl.addEventListener('click',pulse);
+  glowEl.addEventListener('click',pulse);
   brandEl.addEventListener('keydown',e=>{
-    if(e.key==='Enter'||e.key===' '){e.preventDefault();brandEl.click();}
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();pulse();}
   });
 }
 
