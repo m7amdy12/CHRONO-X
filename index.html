@@ -837,7 +837,8 @@ main{
   animation:fpIn .38s cubic-bezier(.34,1.4,.5,1) both;
   backdrop-filter:blur(16px);
 }
-.friends-panel[hidden]{display:none}
+.friends-panel[hidden]{display:none !important}
+.friends-panel:not([hidden]){display:flex !important}
 .friends-panel.closing{
   animation:fpOut .28s cubic-bezier(.5,0,.7,.3) forwards;
 }
