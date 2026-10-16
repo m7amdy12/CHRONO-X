@@ -3696,8 +3696,9 @@ async function openComments(item){
   dlg.style.cssText='background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:var(--r-lg);padding:0;width:min(460px,92vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.7)';
   const head=document.createElement('div');
   head.style.cssText='padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center';
+  const otherName = (item.from && item.from.name) ? ('From '+item.from.name) : ((item.to && item.to.name) ? ('To '+item.to.name) : '');
   const h=document.createElement('div');
-  h.innerHTML='<div style="font-family:Orbitron,sans-serif;font-size:14px;letter-spacing:.12em">'+item.plan.t+'</div><div style="font-size:12px;color:var(--mut);margin-top:2px">From '+item.from.name+'</div>';
+  h.innerHTML='<div style="font-family:Orbitron,sans-serif;font-size:14px;letter-spacing:.12em">'+item.plan.t+'</div>'+(otherName?'<div style="font-size:12px;color:var(--mut);margin-top:2px">'+otherName+'</div>':'');
   const close=document.createElement('button');
   close.textContent='×';
   close.style.cssText='width:30px;height:30px;padding:0;min-height:30px;font-size:18px;line-height:1';
