@@ -527,8 +527,6 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   align-items:center;
   justify-content:center;
   gap:16px;
-  pointer-events:auto;
-  cursor:pointer;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
   line-height:1;
@@ -536,10 +534,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   transition:transform .35s cubic-bezier(.34,1.4,.5,1);
   white-space:nowrap;
   max-width:calc(100% - 140px);
-  overflow:hidden;
 }
-.brand:hover{transform:translate(-50%,-50%) scale(1.04)}
-.brand:active{transform:translate(-50%,-50%) scale(.97)}
 
 /* --- Flanking rounded rectangles --- */
 .logo-frame{
@@ -559,8 +554,11 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   animation:framePulse 2.6s ease-in-out infinite;
   transition:all .3s cubic-bezier(.34,1.4,.5,1);
 }
+.logo-glow{cursor:pointer;pointer-events:auto}
 .logo-frame.left{animation-delay:.15s}
-.logo-frame.left::before{
+.logo-frame.right{animation-delay:.3s}
+
+.logo-frame::before{
   content:"";
   position:absolute;
   inset:-4px;
@@ -568,20 +566,19 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);
   opacity:.6;
   animation:frameRing 2.6s ease-in-out infinite;
+  pointer-events:none;
 }
-.logo-frame.right{animation-delay:.3s}
 
-/* Hover/active state */
-.brand:hover .logo-frame,
-.brand:focus-visible .logo-frame{
-  transform:scale(1.15) rotate(±6deg);
+/* Rectangle hover state */
+.logo-frame:hover{
+  transform:scale(1.15);
   box-shadow:
     0 0 20px color-mix(in srgb,var(--acc) 90%,transparent),
     0 0 40px color-mix(in srgb,var(--acc) 55%,transparent),
     inset 0 0 14px color-mix(in srgb,var(--acc) 90%,#fff);
 }
-.brand:hover .logo-frame.left{transform:scale(1.15) rotate(-8deg)}
-.brand:hover .logo-frame.right{transform:scale(1.15) rotate(8deg)}
+.logo-frame.left:hover{transform:scale(1.15) rotate(-8deg)}
+.logo-frame.right:hover{transform:scale(1.15) rotate(8deg)}
 
 /* --- The animated text --- */
 .logo-glow{
@@ -629,8 +626,8 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   z-index:-1;
   animation:logoShine 4.5s ease-in-out infinite;
 }
-.brand:hover .logo-glow,
-.brand:focus-visible .logo-glow{
+.logo-glow:hover,
+.logo-glow:focus-visible{
   animation:
     logoShine 1.6s ease-in-out infinite,
     logoGlitch .35s steps(2) 1;
