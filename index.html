@@ -953,22 +953,22 @@ main{
     background:transparent !important;
     border:0 !important;
     border-radius:0 !important;
-    animation:none !important;
     backdrop-filter:none !important;
-    display:none;
+    z-index:1 !important;
+    display:none !important;
+    animation:none !important;
   }
   #v-friends.friends-panel.on{
-    display:block;
+    display:block !important;
   }
-  /* On mobile, always show the panel body without the header chrome */
   #v-friends .fp-header{
-    display:none;
+    display:none !important;
   }
   #v-friends .fp-body{
-    padding:0;
+    padding:0 !important;
   }
   #v-friends .fp-add{
-    width:auto;
+    width:auto !important;
   }
 }
 /* ============ MOBILE BOTTOM TAB BAR ============ */
@@ -1686,6 +1686,12 @@ dialog h3{margin:0;font-size:24px}
 
 @media(max-width:820px){.row{grid-template-columns:1fr auto}.row .t{grid-column:1/-1}.dash-header{grid-template-columns:1fr}}
 @media(max-width:900px){
+    /* Hide top-bar icons on mobile — bottom tab bar handles navigation */
+  #topbar .top-left,
+  #topbar .top-actions{
+    visibility:hidden;
+    pointer-events:none;
+  }
   /* Single column */
   #app.on{
     grid-template-columns:1fr;
@@ -2436,9 +2442,21 @@ function go(v){
   view=v;
   const isMobile = window.innerWidth <= 900;
 
+  // Desktop: Friends = toggle floating panel (never a view)
   if(v === 'friends' && !isMobile){
-    // Desktop: Friends = toggle floating panel
-    if(typeof toggleFriends === 'function') toggleFriends();
+    const fp=$('v-friends');
+    if(fp){
+      if(fp.hidden){
+        fp.hidden=false;
+        fp.classList.remove('closing');
+        fp.style.animation='none';
+        void fp.offsetWidth;
+        fp.style.animation='';
+      } else {
+        fp.classList.add('closing');
+        setTimeout(()=>{fp.hidden=true;fp.classList.remove('closing');},260);
+      }
+    }
     return;
   }
 
@@ -2447,11 +2465,6 @@ function go(v){
     const el=$('v-'+k);
     if(el)el.classList.toggle('on',k===v);
   });
-
-  // On desktop, always close the floating friends panel when navigating away
-  if(!isMobile && v !== 'friends' && typeof closeFriends === 'function'){
-    closeFriends();
-  }
 
   document.querySelectorAll('#tabbar .tab').forEach(b=>{
     b.setAttribute('aria-current',b.dataset.tab===v);
