@@ -427,69 +427,14 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 #app{display:none;position:relative;min-height:100vh;background:var(--bg)}
 #app.on{display:block}
 
-/* ============ SLIDE-IN SIDEBAR ============ */
-#side{
-  position:fixed;
-  top:0;
-  left:0;
-  height:100vh;
-  width:min(300px,82vw);
-  padding:70px 22px 24px;
-  background:color-mix(in srgb,var(--bg) 96%,var(--line));
-  border-right:1px solid var(--line);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  z-index:60;
-  transform:translateX(-105%);
-  transition:transform .4s cubic-bezier(.4,1.2,.5,1);
-  box-shadow:0 0 40px rgba(0,0,0,0.6);
-  overflow-y:auto;
-}
-#side.on{transform:translateX(0)}
-#sideOverlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  backdrop-filter:blur(4px);
-  z-index:55;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity .3s;
-}
-#sideOverlay.on{opacity:1;pointer-events:auto}
-#closeSide{
-  position:absolute;
-  top:14px;
-  right:14px;
-  min-width:38px;
-  height:38px;
-  padding:0;
-  font-size:22px;
-  line-height:1;
-  border-radius:var(--r-sm);
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--fg);
-  cursor:pointer;
-}
-#closeSide:hover{border-color:var(--acc);color:var(--acc)}
-.side-logo{
-  font-size:22px;
-  letter-spacing:.25em;
-  color:var(--acc);
-  font-weight:900;
-  margin-bottom:20px;
-  padding-left:4px;
-  text-shadow:0 0 20px color-mix(in srgb,var(--acc) 60%,transparent);
-}
+
 /* ============ TOP BAR + LOGO ============ */
 #topbar{
   position:fixed;
   top:0;
   left:0;
   right:0;
-  height:70px;
+  height:76px;
   padding:0 max(16px,env(safe-area-inset-left,0px)) 0 max(16px,env(safe-area-inset-right,0px));
   display:flex;
   align-items:center;
@@ -498,6 +443,48 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   backdrop-filter:blur(14px);
   border-bottom:1px solid var(--line);
   z-index:50;
+}
+
+.icon-btn{
+  width:44px;
+  height:44px;
+  min-height:44px;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:transparent;
+  color:var(--fg);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:all .25s;
+  position:relative;
+}
+.icon-btn:hover{
+  border-color:var(--acc);
+  color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 10%,transparent);
+  transform:translateY(-1px);
+}
+.icon-btn:active{transform:scale(.95)}
+.icon-btn svg{display:block}
+
+.top-actions{display:flex;gap:8px;align-items:center}
+
+.dot{
+  position:absolute;
+  top:8px;
+  right:8px;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#ff3355;
+  box-shadow:0 0 8px #ff3355;
+  animation:dotPulse 1.6s ease-in-out infinite;
+}
+@keyframes dotPulse{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.35);opacity:.8}
 }
 
 #menuBtn{
@@ -530,20 +517,30 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 }
 #menuBtn:hover span{background:var(--acc)}
 
-/* Glowing logo */
+/* ============ UPGRADED LOGO ============ */
+.brand{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  pointer-events:none;
+  line-height:1;
+}
+
 .logo-glow{
   font-family:Orbitron,sans-serif;
   font-weight:900;
-  font-size:clamp(18px,2.6vw,26px);
-  letter-spacing:.28em;
-  color:var(--fg);
+  font-size:clamp(20px,3.2vw,32px);
+  letter-spacing:.32em;
+  padding-right:.32em;
   position:relative;
-  padding-right:.28em;
+  display:inline-block;
   background:linear-gradient(90deg,
     var(--fg) 0%,
-    var(--acc) 40%,
-    color-mix(in srgb,var(--acc) 70%,#fff) 50%,
-    var(--acc) 60%,
+    var(--acc) 35%,
+    color-mix(in srgb,var(--acc) 55%,#fff) 50%,
+    var(--acc) 65%,
     var(--fg) 100%);
   background-size:250% 100%;
   background-position:100% 0;
@@ -551,26 +548,50 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   background-clip:text;
   -webkit-text-fill-color:transparent;
   animation:logoShine 4s ease-in-out infinite;
-  text-shadow:0 0 30px color-mix(in srgb,var(--acc) 40%,transparent);
+  text-shadow:
+    0 1px 0 color-mix(in srgb,var(--acc) 40%,#000),
+    0 2px 0 color-mix(in srgb,var(--acc) 30%,#000),
+    0 3px 0 color-mix(in srgb,var(--acc) 20%,#000),
+    0 0 22px color-mix(in srgb,var(--acc) 45%,transparent),
+    0 0 44px color-mix(in srgb,var(--acc) 22%,transparent);
 }
 .logo-glow::after{
   content:"CHRONO-X";
   position:absolute;
   inset:0;
-  padding-right:.28em;
+  padding-right:.32em;
   background:inherit;
   background-clip:text;
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
-  filter:blur(14px);
-  opacity:.6;
+  filter:blur(16px);
+  opacity:.7;
   z-index:-1;
   animation:logoShine 4s ease-in-out infinite;
 }
+
+.tagline{
+  margin-top:6px;
+  font-family:Orbitron,sans-serif;
+  font-size:9px;
+  letter-spacing:.55em;
+  text-indent:.55em;
+  text-transform:uppercase;
+  font-weight:700;
+  color:var(--mut);
+  opacity:.75;
+  animation:taglineIn .8s .4s both;
+  text-shadow:0 0 10px color-mix(in srgb,var(--acc) 30%,transparent);
+}
+
 @keyframes logoShine{
   0%{background-position:100% 0}
   50%{background-position:0% 0}
   100%{background-position:100% 0}
+}
+@keyframes taglineIn{
+  from{opacity:0;letter-spacing:.8em;filter:blur(6px)}
+  to{opacity:.75;letter-spacing:.55em;filter:blur(0)}
 }
 .nv{display:flex;align-items:center;gap:14px;width:100%;border:1px solid transparent;border-radius:var(--r);padding:12px 16px;font-weight:600;font-size:16px;background:transparent;color:var(--mut)}
 .nv:hover{background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--fg)}
@@ -1357,23 +1378,28 @@ Continue with Google
 <!-- REDESIGNED MAIN APP HOMEPAGE -->
 <div id="app">
 
-<!-- Top bar: hamburger (left) + logo (right) -->
+<!-- New top bar: settings (left) · logo (center) · bell + friends (right) -->
 <header id="topbar">
-  <button id="menuBtn" type="button" aria-label="Open menu">
-    <span></span><span></span><span></span>
+  <button id="setBtn" class="icon-btn" type="button" aria-label="Settings">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
-  <div class="logo-glow o" aria-label="CHRONO-X">CHRONO-X</div>
-</header>
 
-<!-- Slide-in sidebar (hidden by default) -->
-<div id="sideOverlay"></div>
-<aside id="side">
-  <button id="closeSide" type="button" aria-label="Close menu">×</button>
-  <div class="side-logo o">CHRONO-X</div>
-  <button class="nv" data-v="sch" type="button">Schedule</button>
-  <button class="nv" data-v="set" type="button">Settings</button>
-  <div class="me"><b id="mn"></b><small id="mu"></small></div>
-</aside>
+  <div class="brand" aria-label="CHRONO-X">
+    <div class="logo-glow o">CHRONO-X</div>
+    <div class="tagline">OWN UR TIME</div>
+  </div>
+
+  <div class="top-actions">
+    <button id="bellBtn" class="icon-btn" type="button" aria-label="Notifications">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="dot" id="bellDot" hidden></span>
+    </button>
+    <button id="friendsBtn" class="icon-btn" type="button" aria-label="Friends">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="dot" id="friendsDot" hidden></span>
+    </button>
+  </div>
+</header>
 
 <main>
 <div id="clockWrap">
