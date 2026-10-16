@@ -1084,6 +1084,17 @@ main{
   color:var(--mut);
 }
 .fp-decline:hover{border-color:#ef4444;color:#ef4444}
+.fp-username{
+  font-size:11px;
+  color:var(--mut);
+  letter-spacing:.04em;
+  opacity:.75;
+  margin-left:2px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:100px;
+}
 .fp-share{
   margin-left:auto;
   min-height:26px;
@@ -2021,7 +2032,9 @@ Continue with Google
 <section id="name" class="scr">
 <form class="card" id="nf">
 <h1 class="o">CALLSIGN</h1>
-<label>What should we call you?<input id="nn" autocomplete="given-name" maxlength="24" required></label>
+<label>What should we call you?<input id="nn" autocomplete="given-name" maxlength="24" required placeholder="Your display name"></label>
+<label>Pick a username<input id="nu" autocomplete="username" maxlength="20" required placeholder="letters, numbers, _"><span style="font-size:12px;opacity:.7;margin-top:2px">3-20 chars · lowercase · unique</span></label>
+<div class="err" id="ne" role="alert"></div>
 <button class="p">Continue</button>
 </form>
 </section>
@@ -2166,7 +2179,12 @@ Continue with Google
 <div class="view set" id="v-set">
 <div class="vh"><div><h2 class="o">SETTINGS</h2><p>Configure your workspace.</p></div></div>
 <section><h3>PROFILE</h3>
-<form class="ar" id="pfm" style="display:flex;gap:12px"><input id="dn" maxlength="24" aria-label="Display name" required><button class="p">Save name</button></form></section>
+<form class="ar" id="pfm" style="display:flex;flex-direction:column;gap:12px">
+  <label style="display:grid;gap:6px">Display name<input id="dn" maxlength="24" aria-label="Display name" required></label>
+  <label style="display:grid;gap:6px">Username<input id="un" maxlength="20" aria-label="Username" required placeholder="letters, numbers, _"></label>
+  <div class="err" id="ue" role="alert" style="min-height:18px"></div>
+  <button class="p" style="align-self:flex-start">Save profile</button>
+</form></section>
 <section><h3>THEME</h3><div class="ths" id="ths"></div></section>
 <section><h3>ACCENT COLOR</h3><div class="sws" id="sws"></div></section>
 <section><h3>NOTIFICATIONS</h3>
@@ -2416,6 +2434,9 @@ sb.auth.onAuthStateChange(async (event,session)=>{
     if(session.user.user_metadata?.display_name){
       acct.dn=session.user.user_metadata.display_name;
     }
+        if(session.user.user_metadata?.username){
+      acct.username=session.user.user_metadata.username;
+    }
     // Load user preferences from Supabase
     const prefs=session.user.user_metadata?.prefs;
     if(prefs){
@@ -2486,33 +2507,62 @@ $('af').onsubmit=async e=>{
 $('nf').onsubmit=async e=>{
   e.preventDefault();
   const name=$('nn').value.trim();
-  if(!name)return;
+  const uname=($('nu').value||'').trim().toLowerCase();
+  const errEl=$('ne');
+  errEl.textContent='';
+  errEl.style.color='';
+
+  if(!name){errEl.textContent='Please enter a display name.';return;}
+  if(!/^[a-z0-9_]{3,20}$/.test(uname)){
+    errEl.textContent='Username: 3-20 chars, lowercase letters, numbers, or _';
+    return;
+  }
+
   $('nn').disabled=true;
+  $('nu').disabled=true;
 
   try{
-    const {error}=await sb.auth.updateUser({
-      data:{display_name:name}
-    });
-    if(error){
-      console.error(error);
+    // Check if username is taken
+    const {data:taken,error:checkErr}=await sb
+      .from('profiles')
+      .select('id')
+      .ilike('username',uname)
+      .neq('id',currentUser.id)
+      .maybeSingle();
+    if(checkErr)throw checkErr;
+    if(taken){
+      errEl.textContent='That username is already taken.';
       $('nn').disabled=false;
+      $('nu').disabled=false;
       return;
     }
+
+    // Save auth metadata
+    const {error}=await sb.auth.updateUser({
+      data:{display_name:name, username:uname}
+    });
+    if(error)throw error;
+
+    // Save profile row
+    const {error:pErr}=await sb.from('profiles').upsert({
+      id:currentUser.id,
+      email:currentUser.email,
+      display_name:name,
+      username:uname,
+      updated_at:new Date().toISOString()
+    },{onConflict:'id'});
+    if(pErr)throw pErr;
+
     acct.dn=name;
-    // Also update the profiles table
-    try{
-      await sb.from('profiles').upsert({
-        id:currentUser.id,
-        email:currentUser.email,
-        display_name:name,
-        updated_at:new Date().toISOString()
-      },{onConflict:'id'});
-    }catch(pe){console.warn('profile update failed',pe);}
+    acct.username=uname;
     $('nn').disabled=false;
+    $('nu').disabled=false;
     intro();
   }catch(err){
     console.error(err);
+    errEl.textContent=err.message||'Something went wrong.';
     $('nn').disabled=false;
+    $('nu').disabled=false;
   }
 };
 
@@ -2723,6 +2773,7 @@ async function startApp(){
   const mnEl=$('mn'); if(mnEl) mnEl.textContent=acct.dn||acct.u;
   const muEl=$('mu'); if(muEl) muEl.textContent='@'+acct.u;
  const dnEl=$('dn'); if(dnEl) dnEl.value=acct.dn;
+ const unEl=$('un'); if(unEl) unEl.value=acct.username||'';
   rSet();
   rSch();
   go(view);
@@ -3013,62 +3064,100 @@ async function sendFriendRequest(){
     await ask({title:'Not signed in',msg:'Please sign in first.',noCancel:true});
     return;
   }
-  const email=await ask({
+  const input=await ask({
     title:'Add a friend',
-    msg:'Enter your friend\u2019s email. They\u2019ll get a request when they sign in.',
+    msg:'Enter your friend\u2019s username or email.',
     input:true,
-    label:'Friend\u2019s email',
-    inputType:'email',
-    placeholder:'friend@example.com',
+    label:'Username or email',
+    inputType:'text',
+    placeholder:'@username or email',
     okText:'Send request'
   });
-  if(!email)return;
-  const clean=String(email).trim().toLowerCase();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)){
-    await ask({title:'Invalid email',msg:'Please enter a valid email address.',noCancel:true});
+  if(!input)return;
+
+  let clean=String(input).trim().toLowerCase();
+  if(clean.startsWith('@')) clean=clean.slice(1);
+
+  if(!clean){
+    await ask({title:'Empty',msg:'Please enter a username or email.',noCancel:true});
     return;
   }
-  if(clean === (currentUser.email||'').toLowerCase()){
-    await ask({title:'That\u2019s you',msg:'You can\u2019t add yourself as a friend.',noCancel:true});
-    return;
+
+  let targetEmail=null;
+  let targetId=null;
+
+  // If it looks like an email → use it directly
+  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)){
+    if(clean === (currentUser.email||'').toLowerCase()){
+      await ask({title:'That\u2019s you',msg:'You can\u2019t add yourself as a friend.',noCancel:true});
+      return;
+    }
+    targetEmail=clean;
+  } else {
+    // Treat as username → look it up
+    if(!/^[a-z0-9_]{3,20}$/.test(clean)){
+      await ask({title:'Invalid',msg:'Enter a valid username (3-20 chars, lowercase) or email.',noCancel:true});
+      return;
+    }
+    const {data:profile,error:pErr}=await sb
+      .from('profiles')
+      .select('id,email,username')
+      .ilike('username',clean)
+      .maybeSingle();
+    if(pErr){await ask({title:'Error',msg:pErr.message,noCancel:true});return;}
+    if(!profile){
+      await ask({title:'Not found',msg:'No user with username @'+clean+'.',noCancel:true});
+      return;
+    }
+    if(profile.id===currentUser.id){
+      await ask({title:'That\u2019s you',msg:'You can\u2019t add yourself.',noCancel:true});
+      return;
+    }
+    targetEmail=profile.email;
+    targetId=profile.id;
   }
 
   try{
     // Check if already friends
-    const {data:existingFriends}=await sb
-      .from('friendships')
-      .select('id')
-      .or(`user_a.eq.${currentUser.id},user_b.eq.${currentUser.id}`);
-    // (friend check is visual only; DB unique constraint prevents dupes)
+    if(targetId){
+      const {data:alreadyFriends}=await sb
+        .from('friendships')
+        .select('id')
+        .or(
+          `and(user_a.eq.${currentUser.id},user_b.eq.${targetId}),and(user_a.eq.${targetId},user_b.eq.${currentUser.id})`
+        )
+        .maybeSingle();
+      if(alreadyFriends){
+        await ask({title:'Already friends',msg:'You\u2019re already friends with this user.',noCancel:true});
+        return;
+      }
+    }
 
-    // Check for existing pending request to this email
+    // Check for existing pending request
     const {data:existingReq}=await sb
       .from('friend_requests')
-      .select('id,status')
+      .select('id')
       .eq('from_user',currentUser.id)
-      .eq('to_email',clean)
+      .eq('to_email',targetEmail)
       .eq('status','pending')
       .maybeSingle();
 
     if(existingReq){
-      await ask({title:'Already sent',msg:'You already have a pending request to that email.',noCancel:true});
+      await ask({title:'Already sent',msg:'You already have a pending request to this user.',noCancel:true});
       return;
     }
 
     const {error}=await sb
       .from('friend_requests')
-      .insert({from_user:currentUser.id, to_email:clean});
+      .insert({from_user:currentUser.id, to_email:targetEmail});
 
-    if(error){
-      await ask({title:'Error',msg:error.message,noCancel:true});
-      return;
-    }
+    if(error){await ask({title:'Error',msg:error.message,noCancel:true});return;}
 
     beep(880,.08,'sine',.05);
     setTimeout(()=>beep(1320,.12,'sine',.05),100);
     await ask({
       title:'✅ Request sent',
-      msg:'We\u2019ll let you know when '+clean+' accepts.',
+      msg:'We\u2019ll let you know when they accept.',
       noCancel:true
     });
     loadFriends();
@@ -3114,14 +3203,15 @@ async function loadFriends(){
     if(profileIds.length){
       const {data:profiles,error:pErr}=await sb
         .from('profiles')
-        .select('id,email,display_name')
+        .select('id,email,display_name,username')
         .in('id',profileIds);
       if(pErr)throw pErr;
       friendProfilesCache = {};
       (profiles||[]).forEach(p=>{
         friendProfilesCache[p.id] = {
           name: p.display_name || (p.email ? p.email.split('@')[0] : 'User'),
-          email: p.email || ''
+          email: p.email || '',
+          username: p.username || ''
         };
       });
     }
@@ -3173,6 +3263,7 @@ function renderFriendsList(friendIds, requests){
     const row=el('div','fp-friend');
     const av=el('span','fp-avatar', initial);
     const nm=el('span','fp-name', name);
+    const uname = info.username ? '@'+info.username : '';
 
     // Add a small "Share plan" button
     const share=el('button','fp-share','Share');
@@ -3180,7 +3271,12 @@ function renderFriendsList(friendIds, requests){
     share.title='Share a plan with '+name;
     share.onclick=()=>startShareFlow(id, name);
 
-    row.append(av, nm, share);
+    if(uname){
+      const u=el('span','fp-username', uname);
+      row.append(av, nm, u, share);
+    } else {
+      row.append(av, nm, share);
+    }
     list.append(row);
   });
 }
@@ -3766,18 +3862,49 @@ $('tfx').onclick=()=>sset({fx:acct.fx===false});
 $('pfm').onsubmit=async e=>{
   e.preventDefault();
   const n=$('dn').value.trim();
-  if(!n)return;
-  acct.dn=n;
-  const mnEl2=$('mn'); if(mnEl2) mnEl2.textContent=n;
+  const uname=($('un').value||'').trim().toLowerCase();
+  const errEl=$('ue');
+  errEl.textContent='';
+  errEl.style.color='';
+
+  if(!n){errEl.textContent='Display name required.';return;}
+  if(!/^[a-z0-9_]{3,20}$/.test(uname)){
+    errEl.textContent='Username: 3-20 chars, lowercase letters, numbers, or _';
+    return;
+  }
+
   try{
-    await sb.auth.updateUser({data:{display_name:n}});
+    // Check taken
+    const {data:taken}=await sb
+      .from('profiles')
+      .select('id')
+      .ilike('username',uname)
+      .neq('id',currentUser.id)
+      .maybeSingle();
+    if(taken){
+      errEl.textContent='That username is already taken.';
+      return;
+    }
+
+    await sb.auth.updateUser({data:{display_name:n, username:uname}});
     await sb.from('profiles').upsert({
       id:currentUser.id,
       email:currentUser.email,
       display_name:n,
+      username:uname,
       updated_at:new Date().toISOString()
     },{onConflict:'id'});
-  }catch(err){console.error(err);}
+
+    acct.dn=n;
+    acct.username=uname;
+    const mnEl2=$('mn'); if(mnEl2) mnEl2.textContent=n;
+    errEl.textContent='✅ Saved';
+    errEl.style.color='var(--acc)';
+    setTimeout(()=>{errEl.textContent='';},2000);
+  }catch(err){
+    console.error(err);
+    errEl.textContent=err.message||'Save failed.';
+  }
 };
 
 /* ---- Backup: Export ---- */
