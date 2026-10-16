@@ -703,46 +703,110 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 .nv{display:flex;align-items:center;gap:14px;width:100%;border:1px solid transparent;border-radius:var(--r);padding:12px 16px;font-weight:600;font-size:16px;background:transparent;color:var(--mut)}
 .nv:hover{background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--fg)}
 .nv[aria-current=true]{background:var(--acc);color:var(--onacc);border-color:var(--acc);box-shadow:0 0 30px color-mix(in srgb,var(--acc) 35%,transparent)}
-/* ============ CENTERED CLOCK ============ */
+/* ============ CENTERED CLOCK + RINGS ============ */
 #clockWrap{
   text-align:center;
-  margin-bottom:36px;
+  margin-bottom:32px;
   padding-top:8px;
   width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
-@media(max-width:900px){
-  #clockWrap{
-    margin-bottom:20px;
-    padding-top:0;
-  }
+
+.ring-container{
+  position:relative;
+  width:clamp(180px,26vw,240px);
+  height:clamp(180px,26vw,240px);
+  display:grid;
+  place-items:center;
 }
-.clock{
-  font-family:Orbitron,sans-serif;
-  font-size:clamp(38px,7vw,64px);
-  font-weight:900;
-  letter-spacing:.08em;
-  color:var(--acc);
-  line-height:1;
-  text-shadow:
-    0 0 20px color-mix(in srgb,var(--acc) 60%,transparent),
-    0 0 40px color-mix(in srgb,var(--acc) 30%,transparent);
-  font-variant-numeric:tabular-nums;
-  animation:clockPulse 3s ease-in-out infinite;
+
+.ring-svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  transform:rotate(-90deg);      /* start at 12 o'clock */
+  pointer-events:none;
 }
-.clock small{
-  display:block;
-  font-size:clamp(11px,1.6vw,14px);
-  letter-spacing:.4em;
+
+.ring-track{
+  fill:none;
+  stroke:color-mix(in srgb,var(--line) 70%,transparent);
+  stroke-width:6;
+}
+
+.ring-fill{
+  fill:none;
+  stroke:var(--acc);
+  stroke-width:6;
+  stroke-linecap:round;
+  stroke-dasharray:0 1000;    /* set by JS */
+  transition:stroke-dasharray .8s cubic-bezier(.4,1,.5,1);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--acc) 60%,transparent));
+}
+.ring-fill.ring-week{
+  stroke:color-mix(in srgb,var(--acc) 75%,var(--fg));
+  stroke-width:5;
+  opacity:.85;
+}
+.ring-fill.ring-today{
+  stroke:var(--acc);
+  stroke-width:7;
+}
+
+/* Clock sits inside the rings */
+.ring-container .clock{
+  position:relative;
+  z-index:2;
+  font-size:clamp(28px,5vw,44px);
+}
+
+/* Subtle pulse on the whole ring when completing something */
+.ring-container.pulse{
+  animation:ringPulse .6s cubic-bezier(.34,1.4,.5,1);
+}
+@keyframes ringPulse{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+
+/* Legend below the rings */
+.ring-legend{
+  display:flex;
+  gap:16px;
+  justify-content:center;
+  margin-top:14px;
+  font-size:12px;
+  letter-spacing:.12em;
   color:var(--mut);
-  font-weight:700;
-  margin-top:12px;
   text-transform:uppercase;
-  text-shadow:none;
-  animation:none;
+  font-weight:600;
 }
-@keyframes clockPulse{
-  0%,100%{text-shadow:0 0 20px color-mix(in srgb,var(--acc) 55%,transparent),0 0 40px color-mix(in srgb,var(--acc) 25%,transparent)}
-  50%{text-shadow:0 0 28px color-mix(in srgb,var(--acc) 80%,transparent),0 0 60px color-mix(in srgb,var(--acc) 45%,transparent)}
+.ring-legend span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.ring-legend i{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--mut);
+}
+.ring-legend .lg-week i{background:color-mix(in srgb,var(--acc) 75%,var(--fg))}
+.ring-legend .lg-today i{background:var(--acc);box-shadow:0 0 6px var(--acc)}
+.ring-legend b{color:var(--fg);font-weight:700}
+
+/* Mobile shrink */
+@media(max-width:700px){
+  #clockWrap{margin-bottom:22px}
+  .ring-container{width:clamp(160px,44vw,200px);height:clamp(160px,44vw,200px)}
+  .ring-container .clock{font-size:clamp(24px,7vw,32px)}
+  .ring-legend{font-size:11px;gap:12px;margin-top:10px}
 }
 .me{margin-top:auto;padding:14px;border:1px solid var(--line);border-radius:var(--r);display:grid;gap:2px;background:color-mix(in srgb,var(--bg) 80%,var(--line))}
 .me b{font-size:16px;letter-spacing:.05em}
@@ -1904,7 +1968,19 @@ Continue with Google
 
 <main>
 <div id="clockWrap">
-  <div class="clock o" id="clk" aria-label="Current time">--:--:--</div>
+  <div class="ring-container" id="ringContainer">
+    <svg class="ring-svg" viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="ring-track" cx="100" cy="100" r="88" />
+      <circle class="ring-fill ring-week" id="ringWeek" cx="100" cy="100" r="88" />
+      <circle class="ring-track" cx="100" cy="100" r="70" />
+      <circle class="ring-fill ring-today" id="ringToday" cx="100" cy="100" r="70" />
+    </svg>
+    <div class="clock o" id="clk" aria-label="Current time">--:--:--</div>
+  </div>
+  <div class="ring-legend" id="ringLegend">
+    <span class="lg-week"><i></i><b id="lgWeek">0%</b> week</span>
+    <span class="lg-today"><i></i><b id="lgToday">0%</b> today</span>
+  </div>
 </div>
 <div class="view" id="v-sch">
 <div class="vh">
@@ -2525,6 +2601,7 @@ async function startApp(){
   await loadPlans();
   startReminderWatch();
   startClock();
+  updateRings();
   const mnEl=$('mn'); if(mnEl) mnEl.textContent=acct.dn||acct.u;
   const muEl=$('mu'); if(muEl) muEl.textContent='@'+acct.u;
  const dnEl=$('dn'); if(dnEl) dnEl.value=acct.dn;
@@ -3027,6 +3104,7 @@ function rSch(){
       if(newState){
         boom(burstX,burstY);
         completeFanfare();
+        if(typeof pulseRings==='function')pulseRings();
       }
     };
 
@@ -3057,6 +3135,7 @@ function rSch(){
   $('wp').textContent=tot?dn+' of '+tot+' plans completed this week':'Nothing planned this week yet.';
   $('pctLabel').textContent=pct+'% Completed';
   $('pb').style.width=pct+'%';
+  if(typeof updateRings==='function')updateRings();
 }
 
 $('np').onclick=()=>openPlan(null,selectedDay||iso(new Date()));
@@ -3148,6 +3227,46 @@ function completeFanfare(){
   beep(660,.08,'sine',.05);
   setTimeout(()=>beep(880,.08,'sine',.05),90);
   setTimeout(()=>beep(1320,.14,'sine',.06),180);
+}
+/* ---- Time-budget rings ---- */
+const RING_WEEK_CIRC = 2 * Math.PI * 88;   // circumference
+const RING_TODAY_CIRC = 2 * Math.PI * 70;
+
+function setRingProgress(el, circumference, pct){
+  if(!el)return;
+  const clamped=Math.max(0, Math.min(1, pct));
+  const dash=clamped * circumference;
+  el.style.strokeDasharray = dash.toFixed(2) + ' ' + (circumference + 4).toFixed(2);
+}
+
+function updateRings(){
+  const today=iso(new Date());
+
+  const todayPlans=plans.filter(p=>p.d===today);
+  const todayDone=todayPlans.filter(p=>p.x).length;
+  const todayPct=todayPlans.length?todayDone/todayPlans.length:0;
+
+  // Week: current visible week (the one shown in the strip)
+  const weekStart=iso(week);
+  const weekDays=[...Array(7)].map((_,i)=>{const d=new Date(week);d.setDate(week.getDate()+i);return iso(d)});
+  const weekPlans=plans.filter(p=>weekDays.includes(p.d));
+  const weekDone=weekPlans.filter(p=>p.x).length;
+  const weekPct=weekPlans.length?weekDone/weekPlans.length:0;
+
+  setRingProgress($('ringWeek'), RING_WEEK_CIRC, weekPct);
+  setRingProgress($('ringToday'), RING_TODAY_CIRC, todayPct);
+
+  const lgW=$('lgWeek'); if(lgW) lgW.textContent=Math.round(weekPct*100)+'%';
+  const lgT=$('lgToday'); if(lgT) lgT.textContent=Math.round(todayPct*100)+'%';
+}
+
+function pulseRings(){
+  const c=$('ringContainer');
+  if(!c)return;
+  c.classList.remove('pulse');
+  void c.offsetWidth;
+  c.classList.add('pulse');
+  setTimeout(()=>c.classList.remove('pulse'),700);
 }
 /* ---- Live clock ---- */
 let clockTimer=null;
