@@ -4386,16 +4386,19 @@ function buildSharedPlanRow(item){
 }
 
 async function toggleSharedDone(item, field, newValue){
-    console.log('[toggleSharedDone] called:', item.shareId, field, newValue);
+  console.log('[toggleSharedDone] called:', item.shareId, field, newValue);
   try{
-    const {error} = await sb
+    const res = await sb
       .from('plan_shares')
       .update({ [field]: newValue })
-      .eq('id', item.shareId);
-    if(error)throw error;
+      .eq('id', item.shareId)
+      .select();
+    console.log('[toggleSharedDone] update response:', res);
+    if(res.error) throw res.error;
 
     // Update local copy
     item[field] = newValue;
+    console.log('[toggleSharedDone] local item updated:', item);
 
     beep(newValue?880:440, .08, 'sine', .05);
     if(newValue){
@@ -4404,7 +4407,7 @@ async function toggleSharedDone(item, field, newValue){
 
     rSch();
   }catch(err){
-    console.error('toggle shared done failed:', err);
+    console.error('[toggleSharedDone] FAILED:', err);
     await ask({title:'Error', msg:String(err.message||err), noCancel:true});
   }
 }
