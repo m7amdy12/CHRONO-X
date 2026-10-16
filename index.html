@@ -649,7 +649,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   from{opacity:0;letter-spacing:.7em;filter:blur(12px)}
   to{opacity:1;letter-spacing:.22em;filter:blur(0)}
 }
-/* Ambient idle motion */
+/* --- Idle bobbing motion --- */
 .brand:not(:hover){
   animation:brandIn 1s cubic-bezier(.2,1.4,.4,1) both, brandIdle 4s ease-in-out 1s infinite;
 }
@@ -657,6 +657,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   0%,100%{transform:translate(-50%,-50%) translateY(0)}
   50%{transform:translate(-50%,-50%) translateY(-2px)}
 }
+
 @keyframes framePulse{
   0%,100%{
     opacity:.75;
@@ -671,14 +672,14 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   0%,100%{opacity:.35;transform:scale(1)}
   50%{opacity:.75;transform:scale(1.15)}
 }
-/* Glitch on click */
+/* --- Click-triggered glitch --- */
 .logo-glow.glitching{
   animation:
     logoShine 2.4s ease-in-out infinite,
     logoGlitch .45s steps(2) 1;
 }
 
-/* Rectangles push apart on click */
+/* --- Rectangles push apart on click --- */
 .logo-frame.push{
   animation:framePush .5s cubic-bezier(.34,1.4,.5,1);
 }
@@ -690,6 +691,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   35%{transform:translateX(var(--push,0)) scale(1.2)}
   100%{transform:translateX(0) scale(1)}
 }
+
 @keyframes logoGlitch{
   0%{transform:translate(0,0)}
   25%{transform:translate(-3px,1px) skewX(-4deg);filter:hue-rotate(40deg)}
@@ -2107,11 +2109,6 @@ const rightFrame=document.querySelector('.logo-frame.right');
 if(brandEl && glowEl){
   const pulse=()=>{
     // Restart the glitch animation cleanly
-    glowEl.style.animation='none';
-    void glowEl.offsetWidth;
-    glowEl.style.animation='';
-
-    // Add a temp class for the shake
     glowEl.classList.remove('glitching');
     void glowEl.offsetWidth;
     glowEl.classList.add('glitching');
