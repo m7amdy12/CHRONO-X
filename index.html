@@ -2240,12 +2240,19 @@ Continue with Google
       </div>
     </div>
 
-    <div class="fp-section">
-      <h4>SHARED WITH YOU</h4>
-      <div id="sharedList" class="fp-list">
-        <div class="fp-empty">Nothing shared yet.</div>
-      </div>
-    </div>
+<div class="fp-section">
+  <h4>SHARED WITH YOU</h4>
+  <div id="sharedList" class="fp-list">
+    <div class="fp-empty">Nothing shared yet.</div>
+  </div>
+</div>
+
+<div class="fp-section">
+  <h4>SHARED BY YOU</h4>
+  <div id="sharedByList" class="fp-list">
+    <div class="fp-empty">You haven't shared anything yet.</div>
+  </div>
+</div>
 
     <div class="fp-section">
       <h4>RECENT ACTIVITY</h4>
@@ -2405,17 +2412,21 @@ function ask(opts){
   return new Promise(resolve=>{
     uiResolve=resolve;
     const d=$('uiDlg');
+    const wrap=$('uiInputWrap');
     $('uiTitle').textContent=opts.title||'Confirm';
     $('uiMsg').textContent=opts.msg||'';
     $('uiMsg').style.display=opts.msg?'block':'none';
     if(opts.input){
-      $('uiInputWrap').hidden=false;
+      wrap.hidden=false;
+      wrap.style.display='grid';
       $('uiLabel').textContent=opts.label||'Value';
       $('uiInput').type=opts.inputType||'text';
       $('uiInput').value=opts.value||'';
       $('uiInput').placeholder=opts.placeholder||'';
     }else{
-      $('uiInputWrap').hidden=true;
+      wrap.hidden=true;
+      wrap.style.display='none';
+      $('uiInput').value='';
     }
     $('uiOk').textContent=opts.okText||'OK';
     $('uiCancel').textContent=opts.cancelText||'Cancel';
@@ -3525,70 +3536,90 @@ function sharePlanPicker(planList, friendName){
   });
 }
 /* ---- Load plans shared WITH me ---- */
-let sharedWithMe = [];
+
+let sharedWithMe = [];      // plans shared WITH me
+let sharedByMe = [];        // plans I shared
 
 async function loadShared(){
   const list=$('sharedList');
+  const byList=$('sharedByList');
   if(!list || !currentUser)return;
 
   try{
-    const {data:shares,error:shErr}=await sb
+    // 1) Fetch BOTH directions
+    const {data:incoming,error:inErr}=await sb
       .from('plan_shares')
-      .select('id,plan_id,shared_by,created_at')
+      .select('id,plan_id,shared_by,shared_with,created_at')
       .eq('shared_with',currentUser.id)
       .order('created_at',{ascending:false});
-    if(shErr)throw shErr;
+    if(inErr)throw inErr;
 
-    if(!shares||!shares.length){
-      list.textContent='';
-      list.append(el('div','fp-empty','Nothing shared yet.'));
-      sharedWithMe=[];
-      return;
+    const {data:outgoing,error:outErr}=await sb
+      .from('plan_shares')
+      .select('id,plan_id,shared_by,shared_with,created_at')
+      .eq('shared_by',currentUser.id)
+      .order('created_at',{ascending:false});
+    if(outErr)throw outErr;
+
+    const allShares=[...(incoming||[]),...(outgoing||[])];
+
+    // 2) Load plans
+    const planIds=[...new Set(allShares.map(s=>s.plan_id))];
+    let planMap={};
+    if(planIds.length){
+      const {data:planRows,error:pErr}=await sb
+        .from('plans')
+        .select('*')
+        .in('id',planIds);
+      if(pErr)throw pErr;
+      (planRows||[]).forEach(r=>{
+        planMap[r.id]={
+          id:r.id,
+          t:r.title,
+          d:r.date,
+          s:r.start_time||'',
+          e:r.end_time||'',
+          c:r.category||'Plan',
+          n:r.note||''
+        };
+      });
     }
 
-    // Load the actual plans
-    const planIds=shares.map(s=>s.plan_id);
-    const {data:planRows,error:pErr}=await sb
-      .from('plans')
-      .select('*')
-      .in('id',planIds);
-    if(pErr)throw pErr;
-
-    // Load sharer names
-    const sharerIds=[...new Set(shares.map(s=>s.shared_by))];
-    const {data:profiles}=await sb
-      .from('profiles')
-      .select('id,display_name,username')
-      .in('id',sharerIds);
-
+    // 3) Load profiles of everyone involved (other side)
+    const otherIds=[
+      ...(incoming||[]).map(s=>s.shared_by),
+      ...(outgoing||[]).map(s=>s.shared_with)
+    ];
+    const uniqIds=[...new Set(otherIds)];
     const profileMap={};
-    (profiles||[]).forEach(p=>{
-      profileMap[p.id]={
-        name:p.display_name||(p.username?'@'+p.username:'User'),
-        username:p.username||''
-      };
-    });
+    if(uniqIds.length){
+      const {data:profs}=await sb
+        .from('profiles')
+        .select('id,display_name,username')
+        .in('id',uniqIds);
+      (profs||[]).forEach(p=>{
+        profileMap[p.id]={
+          name:p.display_name||(p.username?'@'+p.username:'User'),
+          username:p.username||''
+        };
+      });
+    }
 
-    const planMap={};
-    (planRows||[]).forEach(r=>{
-      planMap[r.id]={
-        id:r.id,
-        t:r.title,
-        d:r.date,
-        s:r.start_time||'',
-        e:r.end_time||'',
-        c:r.category||'Plan',
-        n:r.note||''
-      };
-    });
-
-    sharedWithMe=shares.map(s=>({
+    // 4) Shape
+    sharedWithMe=(incoming||[]).map(s=>({
       shareId:s.id,
       plan:planMap[s.plan_id],
       from:profileMap[s.shared_by]||{name:'Someone'}
     })).filter(x=>x.plan);
 
+    sharedByMe=(outgoing||[]).map(s=>({
+      shareId:s.id,
+      plan:planMap[s.plan_id],
+      to:profileMap[s.shared_with]||{name:'Someone'}
+    })).filter(x=>x.plan);
+
     renderSharedList();
+    renderSharedByList();
   }catch(err){
     console.error('loadShared failed:',err);
   }
@@ -3624,6 +3655,35 @@ function renderSharedList(){
   });
 }
 
+function renderSharedByList(){
+  const list=$('sharedByList');
+  if(!list)return;
+  list.textContent='';
+  if(!sharedByMe.length){
+    list.append(el('div','fp-empty','You haven\'t shared anything yet.'));
+    return;
+  }
+  sharedByMe.forEach(item=>{
+    const p=item.plan;
+    const row=el('div','fp-shared');
+    const head=el('div','fp-shared-head');
+    head.append(
+      el('span','fp-shared-from','To '+item.to.name),
+      el('span','fp-shared-when', p.d)
+    );
+    const body=el('div','fp-shared-body');
+    const title=el('b','fp-shared-title', p.t);
+    const meta=el('span','fp-shared-meta', (p.s?tf(p.s):'')+(p.c?' · '+p.c:''));
+    body.append(title,meta);
+    const actions=el('div','fp-shared-actions');
+    const commentBtn=el('button','fp-comment-btn','💬 Comment');
+    commentBtn.type='button';
+    commentBtn.onclick=()=>openComments(item);
+    actions.append(commentBtn);
+    row.append(head,body,actions);
+    list.append(row);
+  });
+}
 /* ---- Comments panel for a shared plan ---- */
 async function openComments(item){
   const dlg=document.createElement('dialog');
