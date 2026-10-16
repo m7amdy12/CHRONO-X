@@ -760,6 +760,9 @@ main{
   padding:0;
   max-width:none;
   margin:0;
+  display:flex;
+  flex-direction:column;
+  gap:0;
 }
 
 /* Right side column */
@@ -770,6 +773,7 @@ main{
   max-height:calc(100vh - 120px);
   overflow-y:auto;
   padding-right:4px;
+  display:block !important;
 }
 
 .side-card{
@@ -836,6 +840,9 @@ main{
   filter:drop-shadow(0 0 8px color-mix(in srgb,var(--acc) 60%,transparent));
 }
 .view{display:none}
+#v-sch.on{display:block}
+#v-set.on{display:block}
+#v-friends.on{display:block}
 .view.on{display:block;animation:up .4s cubic-bezier(0.16, 1, 0.3, 1) both}
 
 .vh{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:28px}
