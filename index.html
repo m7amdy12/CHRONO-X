@@ -748,12 +748,12 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
 .me b{font-size:16px;letter-spacing:.05em}
 .me small{color:var(--mut);font-size:13px}
 
-/* ============ MAIN LAYOUT (single centered column) ============ */
+/* ============ MAIN LAYOUT (single centered column, wider) ============ */
 #app.on{
   display:block;
-  max-width:860px;
+  max-width:1100px;
   margin:0 auto;
-  padding:96px clamp(16px,4vw,40px) 40px;
+  padding:96px clamp(20px,4vw,48px) 60px;
   position:relative;
 }
 
@@ -2548,7 +2548,28 @@ if(homeBtnEl)homeBtnEl.addEventListener('click',()=>go('sch'));
 const setBtnEl=$('setBtn');
 if(setBtnEl)setBtnEl.addEventListener('click',()=>go('set'));
 const friendsBtnEl=$('friendsBtn');
-if(friendsBtnEl)friendsBtnEl.addEventListener('click',toggleFriends);
+if(friendsBtnEl){
+  friendsBtnEl.addEventListener('click',()=>{
+    const fp=$('v-friends');
+    if(!fp){
+      console.warn('Friends panel element not found!');
+      return;
+    }
+    if(fp.hidden){
+      fp.hidden=false;
+      fp.classList.remove('closing');
+      fp.style.animation='none';
+      void fp.offsetWidth;
+      fp.style.animation='';
+    } else {
+      fp.classList.add('closing');
+      setTimeout(()=>{
+        fp.hidden=true;
+        fp.classList.remove('closing');
+      },260);
+    }
+  });
+}
 const bellBtnEl=$('bellBtn');
 if(bellBtnEl)bellBtnEl.addEventListener('click',()=>{
   // Placeholder — will become the notifications panel later
