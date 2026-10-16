@@ -1964,9 +1964,9 @@ async function startApp(){
   await loadPlans();
   startReminderWatch();
   startClock();
-  $('mn').textContent=acct.dn||acct.u;
-  $('mu').textContent='@'+acct.u;
-  $('dn').value=acct.dn;
+  const mnEl=$('mn'); if(mnEl) mnEl.textContent=acct.dn||acct.u;
+  const muEl=$('mu'); if(muEl) muEl.textContent='@'+acct.u;
+ const dnEl=$('dn'); if(dnEl) dnEl.value=acct.dn;
   rSet();
   rSch();
   go(view);
@@ -2421,7 +2421,7 @@ $('pfm').onsubmit=async e=>{
   const n=$('dn').value.trim();
   if(!n)return;
   acct.dn=n;
-  $('mn').textContent=n;
+  const mnEl2=$('mn'); if(mnEl2) mnEl2.textContent=n;
   try{
     await sb.auth.updateUser({data:{display_name:n}});
   }catch(err){console.error(err);}
