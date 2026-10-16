@@ -4155,14 +4155,17 @@ async function savePlans(){
 
 function getSharedPlansForDay(dayIso){
   const out = [];
+  // Push the ORIGINAL reference (not a copy) so toggles persist
   sharedWithMe.forEach(s=>{
     if(s.plan && s.plan.d === dayIso){
-      out.push({ ...s, direction: 'in' });
+      s._direction = 'in';
+      out.push(s);
     }
   });
   sharedByMe.forEach(s=>{
     if(s.plan && s.plan.d === dayIso){
-      out.push({ ...s, direction: 'out' });
+      s._direction = 'out';
+      out.push(s);
     }
   });
   return out.sort((a,b)=>(a.plan.s||'99').localeCompare(b.plan.s||'99'));
@@ -4311,7 +4314,7 @@ $('np').onclick=()=>openPlan(null,selectedDay||iso(new Date()));
 
 function buildSharedPlanRow(item){
   const p = item.plan;
-  const direction = item.direction;   // 'in' = shared with me, 'out' = I shared
+  const direction = item._direction || item.direction;   // 'in' or 'out'
   const otherParty = direction === 'in' ? item.from : item.to;
 
   const isMine = direction === 'out';   // am I the sharer?
