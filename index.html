@@ -752,6 +752,7 @@ label{display:grid;gap:6px;color:var(--mut);font-weight:600;font-size:14px}
   align-items:start;
 }
 
+/* Left column: the schedule */
 main{
   grid-area:main;
   min-width:0;
@@ -760,21 +761,24 @@ main{
   padding:0;
   max-width:none;
   margin:0;
-  display:flex;
-  flex-direction:column;
-  gap:0;
 }
 
-/* Right side column */
-#v-friends{
+/* Right column: side panel (friends on desktop, settings if user taps gear) */
+#v-friends,
+#v-set{
   grid-area:side;
   position:sticky;
   top:96px;
   max-height:calc(100vh - 120px);
   overflow-y:auto;
   padding-right:4px;
-  display:block;
 }
+#v-friends{display:block}
+#v-set{display:none}
+
+/* When settings is active on desktop, swap what shows in the side column */
+#app:has(#v-set.on) #v-friends{display:none}
+#app:has(#v-set.on) #v-set{display:block}
 
 .side-card{
   border:1px solid var(--line);
