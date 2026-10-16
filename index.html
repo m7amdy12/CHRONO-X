@@ -1139,6 +1139,61 @@ main{
   color:var(--acc);
   background:color-mix(in srgb,var(--acc) 10%,transparent);
 }
+/* Shared plan cards */
+.fp-shared{
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:color-mix(in srgb,var(--bg) 85%,var(--line));
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  animation:up .3s both;
+}
+.fp-shared-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:11px;
+  letter-spacing:.06em;
+  color:var(--mut);
+}
+.fp-shared-from{font-weight:700}
+.fp-shared-when{opacity:.75}
+.fp-shared-body{display:flex;flex-direction:column;gap:2px}
+.fp-shared-title{
+  font-size:14px;
+  color:var(--fg);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.fp-shared-meta{
+  font-size:11px;
+  color:var(--mut);
+  letter-spacing:.05em;
+}
+.fp-shared-actions{
+  display:flex;
+  gap:6px;
+  margin-top:2px;
+}
+.fp-comment-btn{
+  min-height:26px;
+  padding:0 10px;
+  font-size:11px;
+  border-radius:6px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--mut);
+  cursor:pointer;
+  transition:all .2s;
+}
+.fp-comment-btn:hover{
+  border-color:var(--acc);
+  color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 10%,transparent);
+}
 .fp-empty{
   font-size:13px;
   color:var(--mut);
@@ -2803,6 +2858,7 @@ async function startApp(){
   rSch();
   go(view);
   if(typeof loadFriends==='function')loadFriends();
+  if(typeof loadShared==='function')loadShared();
 }
 
 function go(v){
@@ -3347,13 +3403,317 @@ async function confirmRemoveFriend(friendId, friendName){
     await ask({title:'Error',msg:String(err.message||err),noCancel:true});
   }
 }
-/* Placeholder — will be implemented in the next step */
+/* ---- Share a plan with a friend ---- */
 async function startShareFlow(friendId, friendName){
-  await ask({
-    title:'Share a plan',
-    msg:'Sharing with '+friendName+' will be available in the next update.',
-    noCancel:true
+  // Fetch user's plans for the next 30 days
+  const today=new Date();
+  const cutoff=new Date();
+  cutoff.setDate(cutoff.getDate()+30);
+  const futurePlans=plans.filter(p=>{
+    const d=new Date(p.d+'T00:00:00');
+    return d>=new Date(today.toDateString()) && d<=cutoff;
+  }).sort((a,b)=>a.d.localeCompare(b.d));
+
+  if(!futurePlans.length){
+    await ask({
+      title:'No plans to share',
+      msg:'You don\u2019t have any upcoming plans. Add one first.',
+      noCancel:true
+    });
+    return;
+  }
+
+  // Simple picker using the custom modal + a temporary select
+  const picked=await sharePlanPicker(futurePlans, friendName);
+  if(!picked)return;
+
+  try{
+    const {error}=await sb.from('plan_shares').insert({
+      plan_id:picked.id,
+      shared_by:currentUser.id,
+      shared_with:friendId
+    });
+    if(error){
+      if(error.code==='23505'){
+        await ask({title:'Already shared',msg:'You\u2019ve already shared this plan with '+friendName+'.',noCancel:true});
+        return;
+      }
+      throw error;
+    }
+    beep(880,.08,'sine',.05);
+    setTimeout(()=>beep(1320,.12,'sine',.05),100);
+    await ask({title:'✅ Shared',msg:'\u201c'+picked.t+'\u201d is now visible to '+friendName+'.',noCancel:true});
+    loadShared();
+  }catch(err){
+    console.error(err);
+    await ask({title:'Error',msg:String(err.message||err),noCancel:true});
+  }
+}
+
+/* Custom picker for choosing a plan to share */
+function sharePlanPicker(planList, friendName){
+  return new Promise(resolve=>{
+    const dlg=document.createElement('dialog');
+    dlg.style.cssText='background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:var(--r-lg);padding:0;width:min(440px,92vw);box-shadow:0 25px 60px rgba(0,0,0,.7)';
+    const form=document.createElement('form');
+    form.style.cssText='display:grid;gap:14px;padding:24px';
+
+    const h=document.createElement('h3');
+    h.className='o';
+    h.textContent='Share with '+friendName;
+    h.style.cssText='margin:0;font-size:20px';
+
+    const msg=document.createElement('p');
+    msg.textContent='Pick a plan to share:';
+    msg.style.cssText='margin:0;color:var(--mut);font-size:13px';
+
+    const list=document.createElement('div');
+    list.style.cssText='display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto';
+
+    let selected=null;
+
+    planList.slice(0,50).forEach(p=>{
+      const opt=document.createElement('button');
+      opt.type='button';
+      opt.style.cssText='text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--fg);cursor:pointer;font-size:14px;transition:all .2s;display:flex;gap:10px;align-items:center';
+      const date=new Date(p.d+'T00:00:00');
+      const when=date.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+      const time=p.s?tf(p.s):'';
+      opt.innerHTML=`<b style="font-family:Orbitron,sans-serif;font-size:11px;color:var(--acc);min-width:80px">${when}</b><span>${p.t}</span>${time?`<span style="margin-left:auto;color:var(--mut);font-size:11px">${time}</span>`:''}`;
+      opt.onmouseenter=()=>{opt.style.borderColor='var(--acc)';opt.style.background='color-mix(in srgb,var(--acc) 8%,transparent)';};
+      opt.onmouseleave=()=>{
+        if(selected!==p){opt.style.borderColor='var(--line)';opt.style.background='transparent';}
+      };
+      opt.onclick=()=>{
+        selected=p;
+        list.querySelectorAll('button').forEach(b=>{b.style.borderColor='var(--line)';b.style.background='transparent';});
+        opt.style.borderColor='var(--acc)';
+        opt.style.background='color-mix(in srgb,var(--acc) 15%,transparent)';
+      };
+      list.append(opt);
+    });
+
+    const btns=document.createElement('div');
+    btns.style.cssText='display:flex;gap:10px;justify-content:flex-end;margin-top:8px';
+
+    const cancel=document.createElement('button');
+    cancel.type='button';
+    cancel.textContent='Cancel';
+    cancel.style.cssText='padding:0 20px;min-height:40px';
+    cancel.onclick=()=>{dlg.close();resolve(null);};
+
+    const ok=document.createElement('button');
+    ok.type='button';
+    ok.className='p';
+    ok.textContent='Share';
+    ok.style.cssText='padding:0 24px;min-height:40px';
+    ok.onclick=()=>{
+      if(!selected)return;
+      dlg.close();
+      resolve(selected);
+    };
+
+    btns.append(cancel,ok);
+    form.append(h,msg,list,btns);
+    dlg.append(form);
+    document.body.append(dlg);
+    dlg.showModal();
+
+    dlg.addEventListener('close',()=>{
+      setTimeout(()=>dlg.remove(),100);
+    });
   });
+}
+/* ---- Load plans shared WITH me ---- */
+let sharedWithMe = [];
+
+async function loadShared(){
+  const list=$('sharedList');
+  if(!list || !currentUser)return;
+
+  try{
+    const {data:shares,error:shErr}=await sb
+      .from('plan_shares')
+      .select('id,plan_id,shared_by,created_at')
+      .eq('shared_with',currentUser.id)
+      .order('created_at',{ascending:false});
+    if(shErr)throw shErr;
+
+    if(!shares||!shares.length){
+      list.textContent='';
+      list.append(el('div','fp-empty','Nothing shared yet.'));
+      sharedWithMe=[];
+      return;
+    }
+
+    // Load the actual plans
+    const planIds=shares.map(s=>s.plan_id);
+    const {data:planRows,error:pErr}=await sb
+      .from('plans')
+      .select('*')
+      .in('id',planIds);
+    if(pErr)throw pErr;
+
+    // Load sharer names
+    const sharerIds=[...new Set(shares.map(s=>s.shared_by))];
+    const {data:profiles}=await sb
+      .from('profiles')
+      .select('id,display_name,username')
+      .in('id',sharerIds);
+
+    const profileMap={};
+    (profiles||[]).forEach(p=>{
+      profileMap[p.id]={
+        name:p.display_name||(p.username?'@'+p.username:'User'),
+        username:p.username||''
+      };
+    });
+
+    const planMap={};
+    (planRows||[]).forEach(r=>{
+      planMap[r.id]={
+        id:r.id,
+        t:r.title,
+        d:r.date,
+        s:r.start_time||'',
+        e:r.end_time||'',
+        c:r.category||'Plan',
+        n:r.note||''
+      };
+    });
+
+    sharedWithMe=shares.map(s=>({
+      shareId:s.id,
+      plan:planMap[s.plan_id],
+      from:profileMap[s.shared_by]||{name:'Someone'}
+    })).filter(x=>x.plan);
+
+    renderSharedList();
+  }catch(err){
+    console.error('loadShared failed:',err);
+  }
+}
+
+function renderSharedList(){
+  const list=$('sharedList');
+  if(!list)return;
+  list.textContent='';
+  if(!sharedWithMe.length){
+    list.append(el('div','fp-empty','Nothing shared yet.'));
+    return;
+  }
+  sharedWithMe.forEach(item=>{
+    const p=item.plan;
+    const row=el('div','fp-shared');
+    const head=el('div','fp-shared-head');
+    head.append(
+      el('span','fp-shared-from','From '+item.from.name),
+      el('span','fp-shared-when', p.d)
+    );
+    const body=el('div','fp-shared-body');
+    const title=el('b','fp-shared-title', p.t);
+    const meta=el('span','fp-shared-meta', (p.s?tf(p.s):'')+(p.c?' · '+p.c:''));
+    body.append(title,meta);
+    const actions=el('div','fp-shared-actions');
+    const commentBtn=el('button','fp-comment-btn','💬 Comment');
+    commentBtn.type='button';
+    commentBtn.onclick=()=>openComments(item);
+    actions.append(commentBtn);
+    row.append(head,body,actions);
+    list.append(row);
+  });
+}
+
+/* ---- Comments panel for a shared plan ---- */
+async function openComments(item){
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:var(--r-lg);padding:0;width:min(460px,92vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.7)';
+  const head=document.createElement('div');
+  head.style.cssText='padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center';
+  const h=document.createElement('div');
+  h.innerHTML='<div style="font-family:Orbitron,sans-serif;font-size:14px;letter-spacing:.12em">'+item.plan.t+'</div><div style="font-size:12px;color:var(--mut);margin-top:2px">From '+item.from.name+'</div>';
+  const close=document.createElement('button');
+  close.textContent='×';
+  close.style.cssText='width:30px;height:30px;padding:0;min-height:30px;font-size:18px;line-height:1';
+  close.onclick=()=>dlg.close();
+  head.append(h,close);
+
+  const body=document.createElement('div');
+  body.style.cssText='padding:14px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;min-height:120px';
+  body.innerHTML='<div class="fp-empty">Loading…</div>';
+
+  const form=document.createElement('form');
+  form.style.cssText='padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px';
+  const input=document.createElement('input');
+  input.placeholder='Write a comment…';
+  input.maxLength=500;
+  input.style.flex='1';
+  const send=document.createElement('button');
+  send.className='p';
+  send.textContent='Send';
+  send.style.cssText='padding:0 18px;min-height:42px';
+  form.append(input,send);
+
+  dlg.append(head,body,form);
+  document.body.append(dlg);
+  dlg.showModal();
+  dlg.addEventListener('close',()=>setTimeout(()=>dlg.remove(),100));
+
+  async function refresh(){
+    const {data,error}=await sb
+      .from('plan_comments')
+      .select('id,author,body,created_at')
+      .eq('plan_id',item.plan.id)
+      .order('created_at',{ascending:true});
+    if(error){
+      body.innerHTML='<div class="fp-empty" style="color:#ef4444">'+error.message+'</div>';
+      return;
+    }
+    if(!data||!data.length){
+      body.innerHTML='<div class="fp-empty">No comments yet. Start the conversation!</div>';
+      return;
+    }
+    // Load author names
+    const authorIds=[...new Set(data.map(c=>c.author))];
+    const {data:profs}=await sb.from('profiles').select('id,display_name,username').in('id',authorIds);
+    const pmap={};
+    (profs||[]).forEach(p=>pmap[p.id]=p.display_name||p.username||'User');
+
+    body.textContent='';
+    data.forEach(c=>{
+      const row=document.createElement('div');
+      row.style.cssText='padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--bg) 80%,var(--line));border:1px solid var(--line)';
+      const meta=document.createElement('div');
+      meta.style.cssText='font-size:11px;color:var(--mut);letter-spacing:.05em;margin-bottom:4px';
+      const when=new Date(c.created_at);
+      meta.textContent=(pmap[c.author]||'User')+' · '+when.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const txt=document.createElement('div');
+      txt.style.cssText='font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word';
+      txt.textContent=c.body;
+      row.append(meta,txt);
+      body.append(row);
+    });
+    body.scrollTop=body.scrollHeight;
+  }
+
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    const val=input.value.trim();
+    if(!val)return;
+    send.disabled=true;
+    const {error}=await sb.from('plan_comments').insert({
+      plan_id:item.plan.id,
+      author:currentUser.id,
+      body:val
+    });
+    send.disabled=false;
+    if(error){alert(error.message);return;}
+    input.value='';
+    beep(880,.08,'sine',.04);
+    refresh();
+  };
+
+  refresh();
 }
 async function respondToRequest(requestId, action, fromUserId){
   try{
@@ -3406,6 +3766,7 @@ if(friendsBtnEl){
       void fp.offsetWidth;
       fp.style.animation='';
       if(typeof loadFriends==='function')loadFriends();
+      if(typeof loadShared==='function')loadShared();
     } else {
       fp.classList.add('closing');
       setTimeout(()=>{
