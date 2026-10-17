@@ -3050,13 +3050,12 @@ async function startApp(){
   updateRings();
   const mnEl=$('mn'); if(mnEl) mnEl.textContent=acct.dn||acct.u;
   const muEl=$('mu'); if(muEl) muEl.textContent='@'+acct.u;
- const dnEl=$('dn'); if(dnEl) dnEl.value=acct.dn;
- const unEl=$('un'); if(unEl) unEl.value=acct.username||'';
+  const dnEl=$('dn'); if(dnEl) dnEl.value=acct.dn;
+  const unEl=$('un'); if(unEl) unEl.value=acct.username||'';
   rSet();
   rSch();
   go(view);
-  if(typeof loadFriends==='function')loadFriends();
-  if(typeof loadShared==='function')loadShared();
+  if(typeof loadFriends==='function') loadFriends();
 }
 
 function go(v){
@@ -3091,12 +3090,7 @@ function go(v){
     b.setAttribute('aria-current',b.dataset.tab===v);
   });
 }
-/* ---- Refresh shared plans when window regains focus ---- */
-window.addEventListener('focus', ()=>{
-  if(currentUser && typeof loadShared==='function'){
-    loadShared().then(()=>{ if(typeof rSch==='function') rSch(); });
-  }
-});
+
 /* ---- Re-run go() on resize so desktop/mobile switches cleanly ---- */
 let lastWidth = window.innerWidth;
 window.addEventListener('resize', () => {
